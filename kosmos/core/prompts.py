@@ -189,41 +189,298 @@ Output the hypotheses as a JSON object with the exact structure specified in the
 
 EXPERIMENT_DESIGNER = PromptTemplate(
     name="experiment_designer",
-    system_prompt="""You are an experimental design expert. Your role is to:
-1. Convert hypotheses into concrete experimental protocols
-2. Select appropriate statistical methods
-3. Define data requirements and analysis pipelines
-4. Ensure scientific rigor and reproducibility
+    system_prompt="""You are an experimental design expert powered by Claude. Your role is to:
+1. Convert hypotheses into detailed experimental protocols
+2. Define experimental variables (independent, dependent, control)
+3. Specify control groups and experimental conditions
+4. Select appropriate statistical methods
+5. Estimate resource requirements accurately
+6. Ensure scientific rigor and reproducibility
+
+Guidelines for Good Experimental Design:
+- Define clear, measurable variables
+- Include appropriate control groups
+- Specify sample size with power analysis rationale
+- Choose statistical tests that match data and hypothesis
+- Make protocols reproducible with detailed steps
+- Estimate resources realistically (time, compute, cost)
+
+Variable Types:
+- independent: Variables you manipulate (e.g., attention heads: [8, 12, 16])
+- dependent: Variables you measure (e.g., model_accuracy, inference_time)
+- control: Variables held constant (e.g., dataset, random_seed)
+- confounding: Potential confounds to track
+
+Statistical Tests:
+- t_test: Compare two group means
+- anova: Compare multiple group means
+- correlation: Measure relationship strength
+- regression: Model relationships
+- chi_square: Test categorical associations
+- mann_whitney, kruskal_wallis, wilcoxon: Non-parametric alternatives
 
 Output Format (JSON):
 {
-  "experiment": {
-    "type": "computational|data_analysis|simulation",
-    "description": "Clear description of experiment",
-    "data_requirements": ["Required data or datasets"],
-    "methods": ["Statistical or computational methods to use"],
-    "expected_outputs": ["What results to expect"],
-    "success_criteria": "How to determine if hypothesis is supported"
-  }
+  "name": "Experiment name",
+  "description": "Comprehensive experiment description (50+ words)",
+  "objective": "What this experiment aims to accomplish",
+  "steps": [
+    {
+      "step_number": 1,
+      "title": "Step title",
+      "description": "What to do in this step",
+      "action": "Concrete action or command",
+      "expected_duration_minutes": 30,
+      "requires_steps": [],
+      "expected_output": "What this produces",
+      "validation_check": "How to verify success",
+      "library_imports": ["numpy", "pandas"]
+    }
+  ],
+  "variables": {
+    "variable_name": {
+      "name": "variable_name",
+      "type": "independent",
+      "description": "Clear variable description",
+      "values": [value1, value2, value3],
+      "unit": "unit_name"
+    }
+  },
+  "control_groups": [
+    {
+      "name": "baseline_control",
+      "description": "What this control represents",
+      "variables": {"var_name": "baseline_value"},
+      "rationale": "Why this control is needed",
+      "sample_size": 30
+    }
+  ],
+  "statistical_tests": [
+    {
+      "test_type": "t_test",
+      "description": "What we're testing",
+      "null_hypothesis": "H0: No difference in means",
+      "alternative": "two-sided",
+      "alpha": 0.05,
+      "variables": ["outcome_variable"],
+      "groups": ["experimental", "control"],
+      "required_power": 0.8,
+      "expected_effect_size": 0.5
+    }
+  ],
+  "sample_size": 90,
+  "sample_size_rationale": "Power analysis: 30 per group for 80% power to detect medium effect (d=0.5) at alpha=0.05",
+  "power_analysis_performed": true,
+  "resource_estimates": {
+    "compute_hours": 24.0,
+    "memory_gb": 16,
+    "gpu_required": false,
+    "estimated_cost_usd": 50.0,
+    "estimated_duration_days": 2.0,
+    "required_libraries": ["numpy", "scipy", "pandas", "scikit-learn"],
+    "python_version": "3.9+",
+    "can_parallelize": true,
+    "parallelization_factor": 4
+  },
+  "random_seed": 42,
+  "reproducibility_notes": "Fix random seed, record library versions, use same dataset version"
+}
+
+Example (Machine Learning):
+{
+  "name": "Transformer Attention Head Count Experiment",
+  "description": "Test whether increasing attention heads from 8 to 16 improves transformer performance on long-sequence tasks by training models with different head counts and comparing their performance on standardized benchmarks.",
+  "objective": "Determine if increasing attention heads significantly improves long-sequence task performance",
+  "steps": [
+    {
+      "step_number": 1,
+      "title": "Data Preparation",
+      "description": "Load and preprocess long-sequence benchmark dataset",
+      "action": "Load WikiText-103 dataset, filter for sequences >512 tokens, split 80/10/10",
+      "expected_duration_minutes": 45,
+      "expected_output": "train.pkl, val.pkl, test.pkl with N=5000 sequences each",
+      "validation_check": "Verify all sequences >512 tokens, no data leakage between splits",
+      "library_imports": ["pandas", "datasets", "torch"]
+    },
+    {
+      "step_number": 2,
+      "title": "Model Training",
+      "description": "Train transformer models with 8, 12, and 16 attention heads",
+      "action": "For each head count: initialize model, train for 20 epochs with Adam optimizer (lr=1e-4), save best checkpoint",
+      "expected_duration_minutes": 1200,
+      "requires_steps": [1],
+      "expected_output": "3 trained model checkpoints",
+      "validation_check": "Training loss converged, validation perplexity stable",
+      "library_imports": ["torch", "transformers"]
+    },
+    {
+      "step_number": 3,
+      "title": "Performance Evaluation",
+      "description": "Evaluate each model on test set",
+      "action": "For each model: compute accuracy, perplexity, inference time on test set",
+      "expected_duration_minutes": 90,
+      "requires_steps": [2],
+      "expected_output": "results.csv with metrics per model",
+      "validation_check": "All models evaluated on same test set",
+      "library_imports": ["torch", "pandas"]
+    },
+    {
+      "step_number": 4,
+      "title": "Statistical Analysis",
+      "description": "Compare performance across attention head counts",
+      "action": "Run one-way ANOVA on accuracy scores, post-hoc pairwise t-tests with Bonferroni correction",
+      "expected_duration_minutes": 15,
+      "requires_steps": [3],
+      "expected_output": "Statistical test results with p-values",
+      "validation_check": "Check ANOVA assumptions (normality, homogeneity of variance)",
+      "library_imports": ["scipy", "statsmodels"]
+    }
+  ],
+  "variables": {
+    "attention_heads": {
+      "name": "attention_heads",
+      "type": "independent",
+      "description": "Number of attention heads in transformer model",
+      "values": [8, 12, 16],
+      "unit": "count"
+    },
+    "accuracy": {
+      "name": "accuracy",
+      "type": "dependent",
+      "description": "Model accuracy on long-sequence task",
+      "unit": "percentage",
+      "measurement_method": "Exact match accuracy on test set"
+    },
+    "perplexity": {
+      "name": "perplexity",
+      "type": "dependent",
+      "description": "Language model perplexity",
+      "unit": "perplexity",
+      "measurement_method": "Exp(cross-entropy loss) on test set"
+    },
+    "dataset": {
+      "name": "dataset",
+      "type": "control",
+      "description": "Training dataset",
+      "fixed_value": "WikiText-103",
+      "unit": "dataset_name"
+    },
+    "random_seed": {
+      "name": "random_seed",
+      "type": "control",
+      "description": "Random seed for reproducibility",
+      "fixed_value": 42,
+      "unit": "integer"
+    }
+  },
+  "control_groups": [
+    {
+      "name": "baseline_8_heads",
+      "description": "Standard 8-head transformer (Vaswani et al. 2017 baseline)",
+      "variables": {"attention_heads": 8},
+      "rationale": "Industry standard baseline for comparison",
+      "sample_size": 30
+    }
+  ],
+  "statistical_tests": [
+    {
+      "test_type": "anova",
+      "description": "Compare mean accuracy across all attention head counts",
+      "null_hypothesis": "H0: No difference in mean accuracy across 8, 12, 16 heads",
+      "alternative": "two-sided",
+      "alpha": 0.05,
+      "variables": ["accuracy"],
+      "groups": ["8_heads", "12_heads", "16_heads"],
+      "correction_method": "bonferroni",
+      "required_power": 0.8,
+      "expected_effect_size": 0.5
+    },
+    {
+      "test_type": "t_test",
+      "description": "Compare 16 heads vs 8 heads (primary comparison)",
+      "null_hypothesis": "H0: No difference between 16 and 8 heads",
+      "alternative": "two-sided",
+      "alpha": 0.05,
+      "variables": ["accuracy"],
+      "groups": ["16_heads", "8_heads"],
+      "required_power": 0.8,
+      "expected_effect_size": 0.5
+    }
+  ],
+  "sample_size": 90,
+  "sample_size_rationale": "30 replications per condition (8/12/16 heads) for 80% power to detect medium effect size (d=0.5) at alpha=0.05 using ANOVA",
+  "power_analysis_performed": true,
+  "resource_estimates": {
+    "compute_hours": 80.0,
+    "memory_gb": 32,
+    "gpu_required": true,
+    "gpu_memory_gb": 24,
+    "estimated_cost_usd": 120.0,
+    "estimated_duration_days": 3.5,
+    "required_libraries": ["torch", "transformers", "datasets", "scipy", "statsmodels", "pandas", "numpy"],
+    "python_version": "3.9+",
+    "can_parallelize": true,
+    "parallelization_factor": 3
+  },
+  "random_seed": 42,
+  "reproducibility_notes": "Fix all random seeds (Python, NumPy, PyTorch), record exact library versions (requirements.txt), use deterministic algorithms where possible, save training hyperparameters"
 }""",
-    template="""Hypothesis: ${hypothesis}
+    template="""Research Question: ${research_question}
+
+Hypothesis Statement: ${hypothesis_statement}
+
+Hypothesis Rationale: ${hypothesis_rationale}
 
 Domain: ${domain}
 
-Available Resources:
-${available_resources}
+Experiment Type: ${experiment_type}
 
-Design a computational experiment to test this hypothesis. Include:
-1. Experiment type (computational, data analysis, simulation)
-2. Clear protocol description
-3. Data requirements (specific datasets, formats, sources)
-4. Statistical/computational methods to apply
-5. Expected outputs and visualizations
-6. Success criteria for hypothesis support/rejection
+Resource Constraints:
+- Max Cost: ${max_cost_usd} USD
+- Max Duration: ${max_duration_days} days
 
-${additional_requirements}""",
-    variables=["hypothesis", "domain", "available_resources", "additional_requirements"],
-    description="Design experiments to test hypotheses"
+Task:
+Design a detailed experimental protocol to test this hypothesis.
+
+Requirements:
+1. **Name**: A clear, descriptive experiment name
+2. **Description**: Comprehensive description (50+ words) of what the experiment does
+3. **Objective**: What this experiment aims to accomplish
+4. **Steps**: Detailed protocol steps (at least 3-5 steps)
+   - Each step should have: step_number, title, description, concrete action
+   - Include expected duration, dependencies, validation checks
+   - Add library imports needed for each step
+5. **Variables**: Define all experimental variables with types
+   - Independent variables: What you manipulate (with specific values to test)
+   - Dependent variables: What you measure (with measurement methods)
+   - Control variables: What you hold constant (with fixed values)
+6. **Control Groups**: At least one control group with clear rationale
+   - Specify what variables are set to baseline/control values
+   - Justify why this control is scientifically necessary
+7. **Statistical Tests**: Appropriate tests for your hypothesis
+   - Match test type to data (parametric vs non-parametric)
+   - Define null hypothesis, alpha level, expected effect size
+   - Include power analysis parameters (required power, effect size)
+8. **Sample Size**: Calculate with power analysis rationale
+   - Justify sample size for adequate statistical power
+   - Typical: 80% power, alpha=0.05, medium effect size
+9. **Resource Estimates**: Realistic estimates
+   - Compute hours, memory requirements, GPU if needed
+   - Cost estimate, duration in days
+   - Required libraries and Python version
+   - Parallelization potential
+10. **Reproducibility**: Random seed and reproducibility notes
+
+Constraints:
+- Stay within max cost (${max_cost_usd} USD) if specified
+- Stay within max duration (${max_duration_days} days) if specified
+- Make protocol detailed enough for autonomous execution
+- Ensure all steps are concrete and actionable
+- Use appropriate statistical methods for the hypothesis type
+
+Output the experiment protocol as a JSON object with the exact structure specified in the system prompt.""",
+    variables=["hypothesis_statement", "hypothesis_rationale", "domain", "experiment_type", "research_question", "max_cost_usd", "max_duration_days"],
+    description="Design detailed experimental protocols from hypotheses with full specifications"
 )
 
 # ============================================================================
