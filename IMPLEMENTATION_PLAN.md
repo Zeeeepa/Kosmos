@@ -20,10 +20,10 @@
 
 ## Project Status Dashboard
 
-**Current Phase**: Phase 9 In Progress 🔄 (16% - see checkpoint)
+**Current Phase**: Phase 9 In Progress 🔄 (39% - see checkpoint v2)
 **Last Updated**: 2025-11-08
-**Overall Progress**: ~75% (211 + 5 = 216/285 tasks)
-**Checkpoint**: docs/PHASE_9_CHECKPOINT_2025-11-08.md
+**Overall Progress**: ~76% (211 + 12 = 223/285 tasks)
+**Checkpoint**: docs/PHASE_9_CHECKPOINT_2025-11-08_v2.md (Second checkpoint at 50% tokens)
 **Previous Completion**: docs/PHASE_8_COMPLETION.md
 
 ---
@@ -498,8 +498,8 @@
 ---
 
 ## Phase 9: Multi-Domain Support
-**Status**: 🔄 In Progress | **Progress**: 5/31 tasks (16%)
-**Checkpoint**: docs/PHASE_9_CHECKPOINT_2025-11-08.md
+**Status**: 🔄 In Progress | **Progress**: 12/31 tasks (39%)
+**Checkpoint**: docs/PHASE_9_CHECKPOINT_2025-11-08_v2.md (Biology complete, Neuroscience APIs done)
 
 **Note**: Reference domain roadmaps created in Phase 0.3 (`docs/domain-roadmaps/`) for methodology and tool guidance based on kosmos-figures repository analysis.
 
@@ -510,25 +510,25 @@
 - [x] Implement DomainRouter in `kosmos/core/domain_router.py` (~1,070 lines)
 
 ### 9.1 Domain-Specific Tool Integrations
-- [x] Biology API clients: KEGG, GWAS, GTEx, ENCODE, dbSNP, Ensembl, HMDB, MetaboLights, UniProt, PDB (~660 lines)
-<!-- In progress: Biology analyzers - see PHASE_9_CHECKPOINT_2025-11-08.md -->
-- [ ] Biology analyzers: MetabolomicsAnalyzer, GenomicsAnalyzer
-- [ ] Neuroscience API clients (7 APIs): FlyWire, AllenBrain, MICrONS, GEO, AMPAD, OpenConnectome, WormBase
+- [x] Biology API clients: KEGG, GWAS, GTEx, ENCODE, dbSNP, Ensembl, HMDB, MetaboLights, UniProt, PDB (~660 lines) ✅
+- [x] Biology analyzers: MetabolomicsAnalyzer (~480 lines), GenomicsAnalyzer (~540 lines) ✅
+- [x] Neuroscience API clients (7 APIs): FlyWire, AllenBrain, MICrONS, GEO, AMPAD, OpenConnectome, WormBase (~640 lines) ✅
+<!-- In progress: Neuroscience analyzers - see PHASE_9_CHECKPOINT_2025-11-08_v2.md -->
 - [ ] Neuroscience analyzers: ConnectomicsAnalyzer, NeurodegenerationAnalyzer
 - [ ] Materials API clients (5 APIs): MaterialsProject, NOMAD, AFLOW, Citrination, PerovskiteDB
 - [ ] Materials optimizer: MaterialsOptimizer
 
-**Key Files**: `kosmos/domains/biology/apis.py` ✅, `kosmos/domains/biology/metabolomics.py`, `kosmos/domains/biology/genomics.py`
+**Key Files**: `kosmos/domains/biology/` ✅ (complete), `kosmos/domains/neuroscience/apis.py` ✅, `kosmos/experiments/templates/biology/` ✅ (complete)
 
 ### 9.2 Domain Knowledge Bases
-- [ ] Biology ontology module
+- [x] Biology ontology module (~390 lines) ✅
 - [ ] Neuroscience ontology module
 - [ ] Materials ontology module
 - [ ] Unified domain knowledge base system (`kosmos/knowledge/domain_kb.py`)
 - [ ] Cross-domain concept mapping
 - [ ] Knowledge base updates from literature integration
 
-**Key Files**: `kosmos/domains/biology/ontology.py`, `kosmos/knowledge/domain_kb.py`
+**Key Files**: `kosmos/domains/biology/ontology.py` ✅, `kosmos/knowledge/domain_kb.py`
 
 ### 9.3 Domain Detection & Routing (✅ Complete)
 - [x] Implement domain classification from research questions
@@ -540,12 +540,13 @@
 **Key Files**: `kosmos/core/domain_router.py` ✅
 
 ### 9.4 Domain-Specific Experiment Templates
-- [ ] Biology templates: metabolomics_comparison, gwas_multimodal
+- [x] Biology templates: metabolomics_comparison (~370 lines), gwas_multimodal (~420 lines) ✅
+<!-- In progress: Neuroscience templates - see PHASE_9_CHECKPOINT_2025-11-08_v2.md -->
 - [ ] Neuroscience templates: connectome_scaling, differential_expression
 - [ ] Materials templates: parameter_correlation, optimization, shap_analysis
 - [ ] Template registry enhancement for domain-specific discovery
 
-**Key Files**: `kosmos/experiments/templates/biology/`, `kosmos/experiments/templates/neuroscience/`, `kosmos/experiments/templates/materials/`
+**Key Files**: `kosmos/experiments/templates/biology/` ✅ (complete), `kosmos/experiments/templates/neuroscience/`, `kosmos/experiments/templates/materials/`
 
 ### 9.5 Testing & Documentation
 - [ ] Domain router tests (~500 lines, 40 tests)
