@@ -154,7 +154,7 @@ def display_config():
         )
         research_table.add_row(
             "Experiment Types",
-            ", ".join(config.research.experiment_types)
+            ", ".join(config.research.enabled_experiment_types)
         )
         research_table.add_row(
             "Budget (USD)",
