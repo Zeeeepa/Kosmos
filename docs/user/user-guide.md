@@ -183,7 +183,32 @@ Kosmos maintains a **persistent knowledge graph** that automatically captures yo
 
 **Installation:**
 
-Using Docker (recommended):
+**Option A: Automated Setup (Recommended)**
+
+The fastest way to get Neo4j running:
+
+```bash
+# One command - handles everything
+./scripts/setup_neo4j.sh
+
+# Or using Make
+make setup-neo4j
+```
+
+**What it does:**
+- ✓ Checks Docker is installed and running
+- ✓ Creates data directories
+- ✓ Validates configuration
+- ✓ Starts Neo4j container
+- ✓ Waits for health check
+- ✓ Verifies connectivity
+- ✓ Displays connection info
+
+See [Automated Setup Guide](automated-setup.md) for details.
+
+**Option B: Manual Docker Setup**
+
+Using docker-compose directly:
 ```bash
 # Start Neo4j via docker-compose (included in Kosmos)
 docker-compose up -d neo4j

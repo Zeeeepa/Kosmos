@@ -238,6 +238,37 @@ Typical research run characteristics (using Anthropic Claude):
 
 ### Installation
 
+#### Option A: Automated Setup (Recommended)
+
+The fastest way to get started - one command does everything:
+
+```bash
+# Clone the repository
+git clone https://github.com/jimmc414/Kosmos.git
+cd Kosmos
+
+# Run automated setup (creates venv, installs deps, configures environment)
+make install
+
+# Or step-by-step:
+./scripts/setup_environment.sh  # Setup Python environment
+./scripts/setup_docker_wsl2.sh  # Install Docker (WSL2 only, one-time)
+./scripts/setup_neo4j.sh        # Setup Neo4j for knowledge graphs
+```
+
+**What it does:**
+- ✓ Checks Python 3.11+ is installed
+- ✓ Creates virtual environment
+- ✓ Installs all dependencies
+- ✓ Creates .env from template
+- ✓ Sets up data directories
+- ✓ Runs database migrations
+- ✓ Verifies installation
+
+See [Automated Setup Guide](docs/user/automated-setup.md) for details.
+
+#### Option B: Manual Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/jimmc414/Kosmos.git
@@ -250,7 +281,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 # Install dependencies
 pip install -e .
 
-# For Claude Code CLI support (Option B)
+# For Claude Code CLI support
 pip install -e ".[router]"
 ```
 

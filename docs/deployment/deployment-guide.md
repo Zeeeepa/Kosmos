@@ -94,6 +94,72 @@ Kosmos AI Scientist supports multiple deployment patterns:
 - macOS (11+)
 - Windows 10/11 (with WSL2)
 
+## Prerequisites
+
+### Docker Installation
+
+Kosmos requires Docker for containerized deployment.
+
+#### Automated Installation (WSL2)
+
+For WSL2 users, we provide an automated installation script:
+
+```bash
+# Clone repository first
+git clone https://github.com/jimmc414/Kosmos.git
+cd Kosmos
+
+# Run automated Docker installation
+./scripts/setup_docker_wsl2.sh
+
+# Or using Make
+make setup-docker
+```
+
+**What it does:**
+- ✓ Detects WSL2 environment
+- ✓ Adds Docker's official repository
+- ✓ Installs Docker Engine and Compose plugin
+- ✓ Starts Docker service
+- ✓ Configures user permissions
+- ✓ Verifies installation
+
+**Important:** You'll need to logout/login after installation for group permissions to take effect.
+
+#### Manual Installation
+
+**Docker Desktop (Windows/Mac):**
+1. Download from [docker.com](https://www.docker.com/products/docker-desktop/)
+2. Install and start Docker Desktop
+3. For WSL2: Enable WSL2 integration in Settings → Resources → WSL Integration
+
+**Docker Engine (Linux):**
+```bash
+# Ubuntu/Debian
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker $USER
+
+# RHEL/Fedora
+sudo dnf install docker-ce docker-ce-cli containerd.io
+
+# Start Docker
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+**Verify Docker installation:**
+```bash
+docker --version        # Should show Docker version 20.10+
+docker compose version  # Should show Compose version 2.0+
+docker ps              # Should show running containers (or empty table)
+```
+
+### Other Requirements
+
+- **Python 3.11+** (for local development)
+- **Minimum 4GB RAM** (8GB+ recommended for production)
+- **10GB disk space** (for images and data)
+
 ## Quick Start (Docker)
 
 ### Single Container (Development)
