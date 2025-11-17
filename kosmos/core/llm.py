@@ -21,6 +21,9 @@ try:
     HAS_ANTHROPIC = True
 except ImportError:
     HAS_ANTHROPIC = False
+    Anthropic = None  # Define as None so later checks don't fail
+    HUMAN_PROMPT = None
+    AI_PROMPT = None
     print("Warning: anthropic package not installed. Install with: pip install anthropic")
 
 from kosmos.core.claude_cache import get_claude_cache, ClaudeCache
@@ -308,9 +311,11 @@ class ClaudeClient:
 
             # Update statistics
             self.total_requests += 1
-            if hasattr(response, 'usage'):
-                self.total_input_tokens += response.usage.input_tokens
-                self.total_output_tokens += response.usage.output_tokens
+            if hasattr(response, 'usage') and response.usage:
+                if hasattr(response.usage, 'input_tokens'):
+                    self.total_input_tokens += response.usage.input_tokens
+                if hasattr(response.usage, 'output_tokens'):
+                    self.total_output_tokens += response.usage.output_tokens
 
             # Extract text
             text = response.content[0].text
@@ -318,11 +323,12 @@ class ClaudeClient:
             # Cache the response (if caching enabled)
             if self.cache and not bypass_cache:
                 metadata = {}
-                if hasattr(response, 'usage'):
-                    metadata = {
-                        'input_tokens': response.usage.input_tokens,
-                        'output_tokens': response.usage.output_tokens,
-                    }
+                if hasattr(response, 'usage') and response.usage:
+                    if hasattr(response.usage, 'input_tokens') and hasattr(response.usage, 'output_tokens'):
+                        metadata = {
+                            'input_tokens': response.usage.input_tokens,
+                            'output_tokens': response.usage.output_tokens,
+                        }
 
                 cache_key_params = {
                     'system': system or "",
@@ -377,9 +383,11 @@ class ClaudeClient:
 
             # Update statistics
             self.total_requests += 1
-            if hasattr(response, 'usage'):
-                self.total_input_tokens += response.usage.input_tokens
-                self.total_output_tokens += response.usage.output_tokens
+            if hasattr(response, 'usage') and response.usage:
+                if hasattr(response.usage, 'input_tokens'):
+                    self.total_input_tokens += response.usage.input_tokens
+                if hasattr(response.usage, 'output_tokens'):
+                    self.total_output_tokens += response.usage.output_tokens
 
             return response.content[0].text
 

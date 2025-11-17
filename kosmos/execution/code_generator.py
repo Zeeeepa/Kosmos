@@ -339,7 +339,17 @@ class ExperimentCodeGenerator:
         self.use_templates = use_templates
         self.use_llm = use_llm
         self.llm_enhance_templates = llm_enhance_templates
-        self.llm_client = llm_client or ClaudeClient() if use_llm else None
+
+        # Initialize LLM client with error handling
+        if use_llm and llm_client is None:
+            try:
+                self.llm_client = ClaudeClient()
+            except (ValueError, Exception) as e:
+                logger.warning(f"Failed to initialize ClaudeClient: {e}. LLM generation will be disabled.")
+                self.llm_client = None
+                self.use_llm = False
+        else:
+            self.llm_client = llm_client if use_llm else None
 
         # Initialize templates
         self.templates: List[CodeTemplate] = []

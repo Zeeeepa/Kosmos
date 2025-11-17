@@ -6,6 +6,7 @@ Executes autonomous research with live progress visualization.
 
 import sys
 import time
+import logging
 from typing import Optional
 from datetime import datetime
 from pathlib import Path
@@ -36,6 +37,8 @@ from kosmos.cli.utils import (
 )
 from kosmos.cli.interactive import run_interactive_mode
 from kosmos.cli.views.results_viewer import ResultsViewer
+
+logger = logging.getLogger(__name__)
 
 
 def run_research(
@@ -215,8 +218,8 @@ def run_with_progress(director, question: str, max_iterations: int) -> dict:
         table.add_column("Status", style="white")
 
         # Get current state from director
-        state = getattr(director, "current_state", "INITIALIZING")
-        iteration = getattr(director, "current_iteration", 0)
+        state = getattr(director.workflow, "current_state", "INITIALIZING")
+        iteration = getattr(director.research_plan, "iteration_count", 0)
 
         table.add_row("Workflow State", create_status_text(state))
         table.add_row("Iteration", f"{iteration}/{max_iterations}")
@@ -280,6 +283,32 @@ def run_with_progress(director, question: str, max_iterations: int) -> dict:
             final_status = director.get_research_status()
 
             # Build results from actual research
+            # Fetch actual hypothesis and experiment objects from database
+            from kosmos.db import get_session
+            from kosmos.db.operations import get_hypothesis, get_experiment
+
+            hypotheses_data = []
+            experiments_data = []
+
+            try:
+                with get_session() as session:
+                    # Fetch hypotheses from database using IDs
+                    for h_id in director.research_plan.hypothesis_pool:
+                        hypothesis = get_hypothesis(session, h_id)
+                        if hypothesis:
+                            hypotheses_data.append(hypothesis.to_dict() if hasattr(hypothesis, 'to_dict') else str(hypothesis))
+
+                    # Fetch experiments from database using IDs
+                    for e_id in director.research_plan.completed_experiments:
+                        experiment = get_experiment(session, e_id)
+                        if experiment:
+                            experiments_data.append(experiment.to_dict() if hasattr(experiment, 'to_dict') else str(experiment))
+            except Exception as e:
+                logger.warning(f"Could not fetch all objects from database: {e}")
+                # Fallback: use IDs as strings
+                hypotheses_data = list(director.research_plan.hypothesis_pool)
+                experiments_data = list(director.research_plan.completed_experiments)
+
             results = {
                 "id": f"research_{int(time.time())}",
                 "question": question,
@@ -289,14 +318,8 @@ def run_with_progress(director, question: str, max_iterations: int) -> dict:
                 "max_iterations": max_iterations,
                 "has_converged": final_status.get("has_converged", False),
                 "convergence_reason": final_status.get("convergence_reason"),
-                "hypotheses": [
-                    h.to_dict() if hasattr(h, 'to_dict') else h
-                    for h in director.research_plan.hypothesis_pool
-                ],
-                "experiments": [
-                    e.to_dict() if hasattr(e, 'to_dict') else e
-                    for e in director.research_plan.completed_experiments
-                ],
+                "hypotheses": hypotheses_data,
+                "experiments": experiments_data,
                 "metrics": {
                     "api_calls": getattr(director.llm_client, 'total_requests', 0),
                     "cache_hits": getattr(director.llm_client, 'cache_hits', 0),

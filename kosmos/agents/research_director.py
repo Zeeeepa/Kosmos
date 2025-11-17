@@ -96,6 +96,16 @@ class ResearchDirectorAgent(BaseAgent):
         # Claude client for research planning and decision-making
         self.llm_client = get_client()
 
+        # Initialize database if not already initialized
+        from kosmos.db import init_from_config
+        try:
+            init_from_config()
+        except RuntimeError:
+            # Database already initialized
+            pass
+        except Exception as e:
+            logger.warning(f"Database initialization failed: {e}")
+
         # Agent registry (will be populated during coordination)
         self.agent_registry: Dict[str, str] = {}  # agent_type -> agent_id
 
@@ -894,9 +904,15 @@ class ResearchDirectorAgent(BaseAgent):
         context: Optional[Dict[str, Any]] = None
     ) -> AgentMessage:
         """Send request to ConvergenceDetector to check if research is complete."""
+        # Use model_dump() for Pydantic v2, fall back to dict() for v1
+        try:
+            research_plan_dict = self.research_plan.model_dump()
+        except AttributeError:
+            research_plan_dict = self.research_plan.dict()
+
         content = {
             "action": "check_convergence",
-            "research_plan": self.research_plan.model_dump(),
+            "research_plan": research_plan_dict,
             "context": context or {}
         }
 

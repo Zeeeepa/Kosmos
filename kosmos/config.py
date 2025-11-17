@@ -744,7 +744,7 @@ class KosmosConfig(BaseSettings):
     world_model: WorldModelConfig = Field(default_factory=WorldModelConfig)
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(Path(__file__).parent.parent / ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore"
