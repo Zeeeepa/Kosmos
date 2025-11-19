@@ -65,10 +65,13 @@ class GraphBuilder:
         self.add_semantic_edges = add_semantic_edges
         self.similarity_threshold = similarity_threshold
 
-        # For semantic similarity
+        # For semantic similarity - always initialize to prevent AttributeError
         if add_semantic_edges:
             self.vector_db = get_vector_db()
             self.embedder = get_embedder()
+        else:
+            self.vector_db = None
+            self.embedder = None
 
         # Track statistics
         self.stats = {

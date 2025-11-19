@@ -29,6 +29,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from kosmos.knowledge import get_knowledge_graph, KnowledgeGraph
+from kosmos.literature.base_client import PaperMetadata
 from kosmos.world_model.interface import EntityManager, WorldModelStorage
 from kosmos.world_model.models import (
     EXPORT_FORMAT_VERSION,
@@ -130,48 +131,36 @@ class Neo4jWorldModel(WorldModelStorage, EntityManager):
         doi = entity.properties.get("doi")
         abstract = entity.properties.get("abstract")
 
-        # Additional metadata
-        metadata = {
-            "confidence": entity.confidence,
-            "project": entity.project,
-            "created_by": entity.created_by,
-            "verified": entity.verified,
-            "created_at": entity.created_at.isoformat() if entity.created_at else None,
-            "updated_at": entity.updated_at.isoformat() if entity.updated_at else None,
-        }
+        # Create PaperMetadata object for create_paper method
+        paper_metadata = PaperMetadata(
+            primary_identifier=entity.id,
+            title=title or "Unknown",
+            abstract=abstract,
+            authors=authors if authors else [],
+            year=year,
+            doi=doi,
+            fields=[entity.properties.get("domain", "unknown")]
+        )
 
         # Use existing create_paper method (handles merge logic)
         node = self.graph.create_paper(
-            paper_id=entity.id,
-            title=title,
-            authors=authors,
-            year=year,
-            doi=doi,
-            abstract=abstract,
-            metadata=metadata,
+            paper=paper_metadata,
             merge=merge
         )
 
-        return node["paper_id"]
+        return node["id"]
 
     def _add_concept_entity(self, entity: Entity, merge: bool) -> str:
         """Add Concept entity using existing graph methods."""
         name = entity.properties.get("name", entity.id)
         description = entity.properties.get("description")
-
-        metadata = {
-            "confidence": entity.confidence,
-            "project": entity.project,
-            "created_by": entity.created_by,
-            "verified": entity.verified,
-            "entity_id": entity.id,
-        }
+        domain = entity.properties.get("domain")
 
         # Use existing create_concept method
         node = self.graph.create_concept(
             name=name,
             description=description,
-            metadata=metadata,
+            domain=domain,
             merge=merge
         )
 
@@ -181,20 +170,12 @@ class Neo4jWorldModel(WorldModelStorage, EntityManager):
         """Add Author entity using existing graph methods."""
         name = entity.properties.get("name", entity.id)
         affiliation = entity.properties.get("affiliation")
-        email = entity.properties.get("email")
-
-        metadata = {
-            "confidence": entity.confidence,
-            "project": entity.project,
-            "created_by": entity.created_by,
-            "entity_id": entity.id,
-        }
+        h_index = entity.properties.get("h_index")
 
         node = self.graph.create_author(
             name=name,
             affiliation=affiliation,
-            email=email,
-            metadata=metadata,
+            h_index=h_index,
             merge=merge
         )
 
@@ -206,18 +187,10 @@ class Neo4jWorldModel(WorldModelStorage, EntityManager):
         description = entity.properties.get("description")
         category = entity.properties.get("category")
 
-        metadata = {
-            "confidence": entity.confidence,
-            "project": entity.project,
-            "created_by": entity.created_by,
-            "entity_id": entity.id,
-        }
-
         node = self.graph.create_method(
             name=name,
             description=description,
             category=category,
-            metadata=metadata,
             merge=merge
         )
 
@@ -442,12 +415,11 @@ class Neo4jWorldModel(WorldModelStorage, EntityManager):
         """
         # Use existing methods for standard relationship types
         if relationship.type == "CITES":
-            # Note: create_citation expects paper_id, cited_paper_id
+            # Note: create_citation expects citing_paper_id, cited_paper_id
             self.graph.create_citation(
-                paper_id=relationship.source_id,
+                citing_paper_id=relationship.source_id,
                 cited_paper_id=relationship.target_id,
-                context=relationship.properties.get("context"),
-                section=relationship.properties.get("section")
+                merge=True
             )
             return relationship.id
 

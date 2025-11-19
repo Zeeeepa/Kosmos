@@ -10,7 +10,7 @@ import numpy as np
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from kosmos.models.experiment import ExperimentProtocol, ExperimentType, Variable, VariableType, ProtocolStep, ResourceRequirements, StatisticalTestSpec
+from kosmos.models.experiment import ExperimentProtocol, ExperimentType, Variable, VariableType, ProtocolStep, ResourceRequirements, StatisticalTestSpec, StatisticalTest
 from kosmos.execution.code_generator import ExperimentCodeGenerator
 from kosmos.execution.executor import CodeExecutor, execute_protocol_code
 from kosmos.execution.result_collector import ResultCollector
@@ -27,13 +27,12 @@ def ttest_protocol():
         name="Integration Test T-test Protocol",
         hypothesis_id="hyp-001",
         domain="statistics",
-        title="Integration Test - T-test",
         description="Comprehensive test protocol for complete pipeline validation with T-test statistical analysis on treatment vs control groups",
         objective="Validate complete execution pipeline from code generation through result collection",
         experiment_type=ExperimentType.DATA_ANALYSIS,
         statistical_tests=[
             StatisticalTestSpec(
-                test_type="t_test",
+                test_type=StatisticalTest.T_TEST,
                 variables=["group", "score"],
                 description="Two-sample T-test comparing treatment vs control groups",
                 null_hypothesis="There is no difference in mean scores between groups"
@@ -53,14 +52,10 @@ def ttest_protocol():
             "score": Variable(name="score", type=VariableType.DEPENDENT, description="Test score measurement")
         },
         resource_requirements=ResourceRequirements(
-            estimated_runtime_seconds=300,
-            cpu_cores=1,
-            memory_gb=1,
-            storage_gb=0.1
+            compute_hours=0.083,
+            memory_gb=1.0
         ),
-        data_requirements={"format": "csv", "columns": ["group", "score"]},
-        random_seed=42,
-        expected_duration_minutes=5
+        random_seed=42
     )
 
 

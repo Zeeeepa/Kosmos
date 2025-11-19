@@ -248,8 +248,8 @@ def clear_specific_cache(cache_manager, cache_type: str):
     """Clear a specific cache type."""
     console.print()
 
-    # Validate cache type
-    valid_types = ["claude", "experiment", "embedding", "general"]
+    # Validate cache type - must match CacheType enum values
+    valid_types = ["claude", "experiment", "embedding", "general", "literature"]
     if cache_type.lower() not in valid_types:
         print_error(f"Invalid cache type. Must be one of: {', '.join(valid_types)}")
         raise typer.Exit(1)

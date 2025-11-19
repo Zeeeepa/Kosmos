@@ -354,7 +354,8 @@ class SemanticScholarClient(BaseLiteratureClient):
             abstract=result.abstract or "",
             authors=authors,
             publication_date=pub_date,
-            journal=result.journal.get("name") if result.journal else None,
+            # Handle both dict and string formats for journal
+            journal=result.journal.get("name") if isinstance(result.journal, dict) else result.journal if result.journal else None,
             venue=result.venue,
             year=result.year,
             url=result.url,

@@ -109,6 +109,11 @@ class PaperEmbedder:
         text = self._paper_to_text(paper)
 
         try:
+            # Check if model is available
+            if self.model is None:
+                logger.warning("Model not available. Returning zero vector.")
+                return np.zeros(self.embedding_dim, dtype=np.float32)
+
             embedding = self.model.encode(
                 text,
                 convert_to_numpy=True,

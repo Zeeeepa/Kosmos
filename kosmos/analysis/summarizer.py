@@ -186,7 +186,8 @@ class ResultSummarizer:
 
         # Additional statistical tests
         for test in result.statistical_tests[:max_findings-1]:
-            if not test.is_primary:
+            # Check if this is not the primary test by comparing test names
+            if test.test_name != result.primary_test:
                 test_finding = f"{test.test_name}: p={test.p_value:.4f}"
                 if test.effect_size is not None:
                     test_finding += f", effect size = {test.effect_size:.3f}"
@@ -276,8 +277,11 @@ class ResultSummarizer:
                 )
                 break
 
-        # Check for missing confidence intervals
-        if result.primary_ci_lower is None or result.primary_ci_upper is None:
+        # Check for missing confidence intervals in primary test
+        primary_test = result.get_primary_test_result()
+        if primary_test is None or primary_test.confidence_interval is None:
+            limitations.append("Confidence intervals not reported, limiting precision of estimate")
+        elif 'lower' not in primary_test.confidence_interval or 'upper' not in primary_test.confidence_interval:
             limitations.append("Confidence intervals not reported, limiting precision of estimate")
 
         # Generic limitations
