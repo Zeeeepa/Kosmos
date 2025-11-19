@@ -86,6 +86,8 @@ def sample_experiment_result():
             )
         ],
         metadata=ExecutionMetadata(
+            experiment_id="exp-001",
+            protocol_id="proto-001",
             start_time=datetime.now(timezone.utc),
             end_time=datetime.now(timezone.utc),
             duration_seconds=5.3,
@@ -395,6 +397,8 @@ class TestDetectionPipeline:
             ],
             variable_results=[],
             metadata=ExecutionMetadata(
+                experiment_id="exp-anom",
+                protocol_id="proto-anom",
                 start_time=datetime.now(timezone.utc),
                 end_time=datetime.now(timezone.utc),
                 duration_seconds=1.0,

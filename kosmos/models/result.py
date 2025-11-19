@@ -201,7 +201,13 @@ class ExperimentResult(BaseModel):
     def validate_statistical_tests(cls, v: List[StatisticalTestResult]) -> List[StatisticalTestResult]:
         """Validate statistical tests list."""
         # Check for duplicate test names
-        test_names = [test.test_name for test in v]
+        test_names = []
+        for test in v:
+            if isinstance(test, dict):
+                test_names.append(test.get('test_name'))
+            else:
+                test_names.append(test.test_name)
+        
         if len(test_names) != len(set(test_names)):
             raise ValueError("Duplicate test names in statistical_tests")
         return v

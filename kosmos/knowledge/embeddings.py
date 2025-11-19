@@ -158,6 +158,11 @@ class PaperEmbedder:
         texts = [self._paper_to_text(paper) for paper in papers]
 
         try:
+            # Check if model is available
+            if self.model is None:
+                logger.warning("Model not available. Returning zero vectors.")
+                return np.zeros((len(papers), self.embedding_dim), dtype=np.float32)
+
             embeddings = self.model.encode(
                 texts,
                 batch_size=batch_size,
@@ -193,6 +198,11 @@ class PaperEmbedder:
             ```
         """
         try:
+            # Check if model is available
+            if self.model is None:
+                logger.warning("Model not available. Returning zero vector.")
+                return np.zeros(self.embedding_dim, dtype=np.float32)
+
             embedding = self.model.encode(
                 query,
                 convert_to_numpy=True,

@@ -362,8 +362,13 @@ class ResultCollector:
             # Additional stats
             additional_stats = {
                 k: v for k, v in test_data.items()
-                if k not in ['test_type', 'test_name', 'statistic', 'p_value', 'effect_size',
-                            'confidence_interval', 'sample_size', 'degrees_of_freedom']
+                if k not in [
+                    'test_type', 'test_name', 'statistic', 'p_value', 'effect_size',
+                    'effect_size_type', 'confidence_interval', 'confidence_level',
+                    'significant_0_05', 'significant_0_01', 'significant_0_001',
+                    'significance_label', 'sample_size', 'degrees_of_freedom',
+                    'additional_stats', 'interpretation', 'is_primary'
+                ]
             }
 
             # Interpretation

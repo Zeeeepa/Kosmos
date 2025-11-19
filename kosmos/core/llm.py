@@ -99,7 +99,7 @@ class ModelComplexity:
         }
 
 
-class ClaudeClient:
+class ClaudeClient(LLMProvider):
     """
     Unified Claude client supporting both API and CLI modes.
 
