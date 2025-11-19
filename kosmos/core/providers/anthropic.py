@@ -236,7 +236,10 @@ class AnthropicProvider(LLMProvider):
                 stop_sequences=stop_sequences or [],
             )
 
-            # Extract text and usage
+            # Extract text and usage with validation
+            if not response.content or len(response.content) == 0:
+                logger.error("Empty response content from Anthropic API")
+                raise ProviderAPIError("Empty response content", provider="anthropic")
             text = response.content[0].text
             usage_stats = UsageStats(
                 input_tokens=response.usage.input_tokens,
@@ -356,7 +359,10 @@ class AnthropicProvider(LLMProvider):
                 messages=anthropic_messages,
             )
 
-            # Extract and convert
+            # Extract and convert with validation
+            if not response.content or len(response.content) == 0:
+                logger.error("Empty response content from Anthropic multi-turn API")
+                raise ProviderAPIError("Empty response content", provider="anthropic")
             text = response.content[0].text
             usage_stats = UsageStats(
                 input_tokens=response.usage.input_tokens,

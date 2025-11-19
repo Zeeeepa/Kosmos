@@ -1289,9 +1289,22 @@ Provide a structured, actionable plan in 2-3 paragraphs.
 
                     try:
                         # Run async evaluation
-                        evaluations = asyncio.run(
-                            self.evaluate_hypotheses_concurrently(hypothesis_batch)
-                        )
+                        # Check if we're already in an async context
+                        try:
+                            loop = asyncio.get_running_loop()
+                            # We're in an async context, create a task
+                            import concurrent.futures
+                            with concurrent.futures.ThreadPoolExecutor() as executor:
+                                future = executor.submit(
+                                    asyncio.run,
+                                    self.evaluate_hypotheses_concurrently(hypothesis_batch)
+                                )
+                                evaluations = future.result()
+                        except RuntimeError:
+                            # No running event loop, safe to use asyncio.run()
+                            evaluations = asyncio.run(
+                                self.evaluate_hypotheses_concurrently(hypothesis_batch)
+                            )
 
                         # Process best candidate(s)
                         for eval_result in evaluations:
@@ -1345,9 +1358,22 @@ Provide a structured, actionable plan in 2-3 paragraphs.
 
                     try:
                         # Run async analysis
-                        analyses = asyncio.run(
-                            self.analyze_results_concurrently(result_batch)
-                        )
+                        # Check if we're already in an async context
+                        try:
+                            loop = asyncio.get_running_loop()
+                            # We're in an async context, use thread pool
+                            import concurrent.futures
+                            with concurrent.futures.ThreadPoolExecutor() as executor:
+                                future = executor.submit(
+                                    asyncio.run,
+                                    self.analyze_results_concurrently(result_batch)
+                                )
+                                analyses = future.result()
+                        except RuntimeError:
+                            # No running event loop, safe to use asyncio.run()
+                            analyses = asyncio.run(
+                                self.analyze_results_concurrently(result_batch)
+                            )
 
                         # Process analyses and update hypotheses
                         for analysis in analyses:

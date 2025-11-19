@@ -317,7 +317,10 @@ class ClaudeClient:
                 if hasattr(response.usage, 'output_tokens'):
                     self.total_output_tokens += response.usage.output_tokens
 
-            # Extract text
+            # Extract text with validation
+            if not response.content or len(response.content) == 0:
+                logger.error("Empty response content from API")
+                return ""
             text = response.content[0].text
 
             # Cache the response (if caching enabled)
@@ -389,6 +392,10 @@ class ClaudeClient:
                 if hasattr(response.usage, 'output_tokens'):
                     self.total_output_tokens += response.usage.output_tokens
 
+            # Validate response content
+            if not response.content or len(response.content) == 0:
+                logger.error("Empty response content from multi-turn API")
+                return ""
             return response.content[0].text
 
         except Exception as e:

@@ -182,8 +182,11 @@ class OpenAIProvider(LLMProvider):
             # Call OpenAI API
             response = self.client.chat.completions.create(**api_args)
 
-            # Extract text and usage
-            text = response.choices[0].message.content
+            # Extract text and usage with validation
+            if not response.choices or len(response.choices) == 0:
+                logger.error("Empty response choices from OpenAI API")
+                raise ProviderAPIError("Empty response choices", provider="openai")
+            text = response.choices[0].message.content or ""
             finish_reason = response.choices[0].finish_reason
 
             # Handle usage stats (may not be present for local models)
@@ -293,8 +296,11 @@ class OpenAIProvider(LLMProvider):
                 temperature=temperature,
             )
 
-            # Extract and convert
-            text = response.choices[0].message.content
+            # Extract and convert with validation
+            if not response.choices or len(response.choices) == 0:
+                logger.error("Empty response choices from OpenAI multi-turn API")
+                raise ProviderAPIError("Empty response choices", provider="openai")
+            text = response.choices[0].message.content or ""
             finish_reason = response.choices[0].finish_reason
 
             # Handle usage stats

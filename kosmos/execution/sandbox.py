@@ -283,17 +283,33 @@ class DockerSandbox:
             try:
                 exit_status = container.wait(timeout=self.timeout)
                 timeout_occurred = False
-            except Exception as e:
+            except (ConnectionError, TimeoutError) as e:
+                # Actual timeout or connection issues
                 logger.warning(f"Container timeout after {self.timeout}s: {e}")
                 timeout_occurred = True
 
                 # Try graceful shutdown
                 try:
                     container.stop(timeout=5)
-                except:
+                except Exception:
                     container.kill()
 
                 exit_status = {'StatusCode': -1}
+            except Exception as e:
+                # Other errors (not timeouts)
+                logger.error(f"Container wait failed with unexpected error: {e}")
+                timeout_occurred = False
+
+                # Try to stop container
+                try:
+                    container.stop(timeout=5)
+                except Exception:
+                    try:
+                        container.kill()
+                    except Exception:
+                        pass
+
+                exit_status = {'StatusCode': -2, 'Error': str(e)}
 
             execution_time = time.time() - start_time
 
