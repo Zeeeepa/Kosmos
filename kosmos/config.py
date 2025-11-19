@@ -5,8 +5,8 @@ Loads configuration from environment variables and provides validated settings
 for all Kosmos components.
 """
 
-from typing import List, Optional, Literal, Union
-from pydantic import Field, field_validator, model_validator
+from typing import List, Optional, Literal, Union, Annotated, Any
+from pydantic import Field, field_validator, model_validator, BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 import os
@@ -106,6 +106,36 @@ class OpenAIConfig(BaseSettings):
     model_config = SettingsConfigDict(populate_by_name=True)
 
 
+def parse_domains_validator(v: Any) -> List[str]:
+    """Parse comma-separated domain string or handle empty values."""
+    if v is None or v == "":
+        return ["biology", "physics", "chemistry", "neuroscience"]
+    if isinstance(v, list):
+        return v
+    if isinstance(v, str):
+        # Handle comma-separated values
+        domains = [d.strip() for d in v.split(",") if d.strip()]
+        if not domains:
+            return ["biology", "physics", "chemistry", "neuroscience"]
+        return domains
+    return v
+
+
+def parse_experiment_types_validator(v: Any) -> List[str]:
+    """Parse comma-separated experiment types string or handle empty values."""
+    if v is None or v == "":
+        return ["computational", "data_analysis", "literature_synthesis"]
+    if isinstance(v, list):
+        return v
+    if isinstance(v, str):
+        # Handle comma-separated values
+        types = [e.strip() for e in v.split(",") if e.strip()]
+        if not types:
+            return ["computational", "data_analysis", "literature_synthesis"]
+        return types
+    return v
+
+
 class ResearchConfig(BaseSettings):
     """Research workflow configuration."""
 
@@ -116,12 +146,12 @@ class ResearchConfig(BaseSettings):
         description="Maximum research iterations",
         alias="MAX_RESEARCH_ITERATIONS"
     )
-    enabled_domains: Union[str, List[str]] = Field(
+    enabled_domains: Annotated[Union[str, List[str]], BeforeValidator(parse_domains_validator)] = Field(
         default=["biology", "physics", "chemistry", "neuroscience"],
         description="Enabled scientific domains",
         alias="ENABLED_DOMAINS"
     )
-    enabled_experiment_types: Union[str, List[str]] = Field(
+    enabled_experiment_types: Annotated[Union[str, List[str]], BeforeValidator(parse_experiment_types_validator)] = Field(
         default=["computational", "data_analysis", "literature_synthesis"],
         description="Enabled experiment types",
         alias="ENABLED_EXPERIMENT_TYPES"
@@ -144,46 +174,6 @@ class ResearchConfig(BaseSettings):
         description="Research budget in USD for API costs",
         alias="RESEARCH_BUDGET_USD"
     )
-
-    @field_validator("enabled_domains", mode="before")
-    @classmethod
-    def parse_domains(cls, v):
-        """Parse comma-separated domain string or handle empty values."""
-        if v is None or v == "":
-            # Return default if empty - will use field default
-            return ["biology", "physics", "chemistry", "neuroscience"]
-        if isinstance(v, str):
-            # Handle comma-separated values
-            domains = [d.strip() for d in v.split(",") if d.strip()]
-            if not domains:
-                return ["biology", "physics", "chemistry", "neuroscience"]
-            return domains
-        return v
-
-    @field_validator("enabled_experiment_types", mode="before")
-    @classmethod
-    def parse_experiment_types(cls, v):
-        """Parse comma-separated experiment types string or handle empty values."""
-        if v is None or v == "":
-            # Return default if empty
-            return ["computational", "data_analysis", "literature_synthesis"]
-        if isinstance(v, str):
-            # Handle comma-separated values
-            types = [e.strip() for e in v.split(",") if e.strip()]
-            if not types:
-                return ["computational", "data_analysis", "literature_synthesis"]
-            return types
-        return v
-
-    @model_validator(mode="after")
-    def ensure_lists(self):
-        """Ensure enabled_domains and enabled_experiment_types are always lists."""
-        # Convert any remaining strings to lists (shouldn't happen with validators, but safety)
-        if isinstance(self.enabled_domains, str):
-            self.enabled_domains = [d.strip() for d in self.enabled_domains.split(",") if d.strip()]
-        if isinstance(self.enabled_experiment_types, str):
-            self.enabled_experiment_types = [e.strip() for e in self.enabled_experiment_types.split(",") if e.strip()]
-        return self
 
     model_config = SettingsConfigDict(populate_by_name=True)
 

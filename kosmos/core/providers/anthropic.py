@@ -236,6 +236,10 @@ class AnthropicProvider(LLMProvider):
                 stop_sequences=stop_sequences or [],
             )
 
+            # Validate response has content
+            if not response.content or len(response.content) == 0:
+                raise ValueError("Anthropic API returned empty response content")
+
             # Extract text and usage
             text = response.content[0].text
             usage_stats = UsageStats(
@@ -355,6 +359,10 @@ class AnthropicProvider(LLMProvider):
                 system=system_prompt or "",
                 messages=anthropic_messages,
             )
+
+            # Validate response has content
+            if not response.content or len(response.content) == 0:
+                raise ValueError("Anthropic API returned empty response content")
 
             # Extract and convert
             text = response.content[0].text

@@ -12,7 +12,21 @@
       "Bash(test:*)",
       "Bash(pip show:*)",
       "Bash(gh issue view:*)",
-      "Bash(env)"
+      "Bash(env)",
+      "Bash(docker-compose ps:*)",
+      "Bash(docker:*)",
+      "Bash(for f in /mnt/c/python/Kosmos/kosmos/world_model/*.py)",
+      "Bash(done)",
+      "Bash(for f in /mnt/c/python/Kosmos/tests/unit/world_model/*.py)",
+      "Bash(docker-compose:*)",
+      "Bash(apt-cache policy:*)",
+      "Bash(command -v docker:*)",
+      "Bash(chmod:*)",
+      "Bash(cat:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh api:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git fetch:*)"
     ],
     "deny": [],
     "ask": []

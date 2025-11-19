@@ -482,8 +482,35 @@ class NeurodegenerationAnalyzer:
         results_df = pd.DataFrame(results).set_index('gene_id')
 
         # Benjamini-Hochberg FDR correction
-        from scipy.stats import false_discovery_control
-        results_df['padj'] = false_discovery_control(results_df['pvalue'].values)
+        # Using statsmodels for FDR correction (more widely available)
+        try:
+            from statsmodels.stats.multitest import multipletests
+            rejected, pvals_corrected, _, _ = multipletests(
+                results_df['pvalue'].values,
+                method='fdr_bh',
+                alpha=0.05
+            )
+            results_df['padj'] = pvals_corrected
+        except ImportError:
+            # Fallback: manual Benjamini-Hochberg implementation
+            import numpy as np
+            pvals = results_df['pvalue'].values
+            n = len(pvals)
+            sorted_idx = np.argsort(pvals)
+            sorted_pvals = pvals[sorted_idx]
+
+            # Calculate adjusted p-values
+            adjusted = np.zeros(n)
+            for i in range(n-1, -1, -1):
+                if i == n - 1:
+                    adjusted[i] = sorted_pvals[i]
+                else:
+                    adjusted[i] = min(adjusted[i+1], sorted_pvals[i] * n / (i + 1))
+
+            # Reorder to original indices
+            padj = np.zeros(n)
+            padj[sorted_idx] = adjusted
+            results_df['padj'] = padj
 
         return results_df
 

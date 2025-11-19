@@ -182,6 +182,10 @@ class OpenAIProvider(LLMProvider):
             # Call OpenAI API
             response = self.client.chat.completions.create(**api_args)
 
+            # Validate response has choices
+            if not response.choices or len(response.choices) == 0:
+                raise ValueError("OpenAI API returned empty response choices")
+
             # Extract text and usage
             text = response.choices[0].message.content
             finish_reason = response.choices[0].finish_reason
@@ -292,6 +296,10 @@ class OpenAIProvider(LLMProvider):
                 max_tokens=max_tokens,
                 temperature=temperature,
             )
+
+            # Validate response has choices
+            if not response.choices or len(response.choices) == 0:
+                raise ValueError("OpenAI API returned empty response choices")
 
             # Extract and convert
             text = response.choices[0].message.content

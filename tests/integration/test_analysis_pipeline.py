@@ -86,8 +86,6 @@ def sample_experiment_result():
             )
         ],
         metadata=ExecutionMetadata(
-            experiment_id="exp-001",
-            protocol_id="proto-001",
             start_time=datetime.utcnow(),
             end_time=datetime.utcnow(),
             duration_seconds=5.3,
@@ -113,7 +111,7 @@ def sample_hypothesis():
         domain="biology",
         testability_score=0.9,
         novelty_score=0.7,
-        feasibility_score=0.8,
+        confidence_score=0.8,
         created_at=datetime.utcnow()
     )
 
@@ -390,7 +388,6 @@ class TestDetectionPipeline:
                     sample_size=100,
                     degrees_of_freedom=98,
                     significance_label="***",
-                    is_primary=True,
                     significant_0_05=True,
                     significant_0_01=True,
                     significant_0_001=True
@@ -398,8 +395,6 @@ class TestDetectionPipeline:
             ],
             variable_results=[],
             metadata=ExecutionMetadata(
-                experiment_id="exp-anom",
-                protocol_id="proto-anom",
                 start_time=datetime.utcnow(),
                 end_time=datetime.utcnow(),
                 duration_seconds=1.0,

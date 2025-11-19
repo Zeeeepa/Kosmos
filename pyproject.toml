@@ -41,6 +41,10 @@ dependencies = [
     "httpx>=0.27.0",
     "tenacity>=8.2.0",
 
+    # System monitoring and caching
+    "psutil>=5.9.0",
+    "redis>=5.0.0",
+
     # Scientific computing
     "numpy>=1.24.0",        # Allow 2.x for pydeseq2 compatibility
     "pandas>=2.0.0",

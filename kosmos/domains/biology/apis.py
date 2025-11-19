@@ -404,6 +404,29 @@ class GTExClient:
             logger.error(f"GTEx gene expression error for {gene_id}: {e}")
             return None
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+    def get_pqtl(self, snp_id: str, gene_id: str, tissue: str = "Whole_Blood") -> Optional[Dict[str, Any]]:
+        """
+        Get pQTL data for SNP-gene pair.
+
+        Args:
+            snp_id: Variant ID
+            gene_id: Gene ID (Ensembl format)
+            tissue: GTEx tissue name
+
+        Returns:
+            Dictionary with pQTL data or None
+        """
+        try:
+            # pQTL data is not directly available in GTEx API
+            # Return placeholder for now
+            logger.warning(f"pQTL data not available for {snp_id}-{gene_id} pair")
+            return None
+
+        except Exception as e:
+            logger.error(f"GTEx pQTL error: {e}")
+            return None
+
     def close(self):
         """Close HTTP client."""
         self.client.close()
@@ -455,6 +478,27 @@ class ENCODEClient:
 
         except Exception as e:
             logger.error(f"ENCODE search error: {e}")
+            return None
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=10))
+    def get_atac_peaks(self, snp_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get ATAC-seq peaks for a given SNP.
+
+        Args:
+            snp_id: SNP identifier
+
+        Returns:
+            Dictionary with ATAC-seq peak data or None
+        """
+        try:
+            # ATAC-seq peak data would require coordinate-based search
+            # Placeholder implementation
+            logger.warning(f"ATAC-seq peak data not available for {snp_id}")
+            return None
+
+        except Exception as e:
+            logger.error(f"ENCODE ATAC-seq error: {e}")
             return None
 
     def close(self):
