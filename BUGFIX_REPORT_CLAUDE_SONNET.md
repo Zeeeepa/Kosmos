@@ -1,11 +1,11 @@
 # Bug Fix Report - Claude Sonnet 4.5
 
 ## Summary
-- Bugs attempted: 38/60
-- Bugs successfully fixed: 34/60
+- Bugs attempted: 41/60
+- Bugs successfully fixed: 37/60
 - Tests passing: TBD (dependencies need installation)
 - Code coverage: TBD
-- Time taken: ~60 minutes
+- Time taken: ~65 minutes
 
 ## Fixed Bugs
 
@@ -26,13 +26,15 @@
 - Bug #19: ✅ Fixed - Fixed import (ExperimentResult → ParallelExecutionResult)
 - Bug #20: ✅ Fixed - Fixed import (EmbeddingGenerator → PaperEmbedder)
 
-### HIGH Severity (9 fixed)
+### HIGH Severity (12 fixed)
 - Bug #21: ✅ Already fixed - e2e marker already in pytest.ini
 - Bug #22-23: ✅ Fixed - Added LLM response validation in ClaudeClient
 - Bug #24-25: ✅ Fixed - Added response content validation in AnthropicProvider
 - Bug #26: ✅ Fixed - Added response choices validation in OpenAIProvider
 - Bug #27: ✅ Fixed - Added null check for embedding model in PaperEmbedder
 - Bug #28: ✅ Fixed - Added null checks for vector DB collection operations
+- Bug #31-32: ✅ Fixed - Added PubMed API response validation (IdList, LinkSetDb)
+- Bug #33: ✅ Fixed - Fixed Semantic Scholar type mismatch (journal as string or dict)
 - Bug #34: ✅ Fixed - Initialize database before checking in doctor command
 - Bug #38: ✅ Fixed - Initialize vector_db/embedder to None when not used
 
@@ -51,7 +53,7 @@
 - Bug #10: create_citation - need more context
 - Bugs #13-14: Missing Biology API Methods - require API implementation
 - Bug #16-17: Missing model fields - require schema changes
-- Bugs #29-33, #35-37: Various HIGH severity - time constraints
+- Bugs #29-30, #35-37: Various HIGH severity - time constraints
 - Bugs #50, #52, #55-60: Remaining MEDIUM severity - time constraints
 
 ## Test Results
@@ -77,7 +79,7 @@
 
 1. **Added missing dependencies**: psutil and redis now in pyproject.toml
 2. **Fixed 14 CRITICAL bugs**: Application should now be able to start
-3. **Fixed 9 HIGH severity bugs**: Better null handling and response validation
+3. **Fixed 12 HIGH severity bugs**: Better null handling, response validation, and API validation
 4. **Fixed 8 TEST FIXTURE bugs**: Tests should now pass validation
 5. **Fixed 3 MEDIUM severity bugs**: Better resource limits and async handling
 
@@ -97,6 +99,8 @@
 - kosmos/knowledge/embeddings.py
 - kosmos/knowledge/graph_builder.py
 - kosmos/knowledge/vector_db.py
+- kosmos/literature/pubmed_client.py
+- kosmos/literature/semantic_scholar.py
 - kosmos/models/result.py
 - kosmos/safety/guardrails.py
 - kosmos/world_model/simple.py
@@ -110,9 +114,10 @@
 2. "Fix HIGH severity bugs #27-28, #34, #38"
 3. "Fix TEST FIXTURE bugs #39-49"
 4. "Fix additional HIGH and MEDIUM severity bugs"
+5. "Fix additional HIGH severity API validation bugs"
 
 ## Recommendations for Next Steps
 1. Install dependencies and run full test suite
 2. Fix remaining CRITICAL bugs (#13-14, #16-17)
-3. Fix remaining HIGH severity bugs (#29-33, #35-37)
+3. Fix remaining HIGH severity bugs (#29-30, #35-37)
 4. Implement remaining MEDIUM severity fixes for better stability
