@@ -58,7 +58,10 @@ def sample_experiment_result():
                 sample_size=100,
                 degrees_of_freedom=98,
                 significance_label="*",
-                is_primary=True
+                is_primary=True,
+                significant_0_05=True,   # p=0.012 < 0.05
+                significant_0_01=False,  # p=0.012 > 0.01
+                significant_0_001=False  # p=0.012 > 0.001
             )
         ],
         variable_results=[
@@ -91,10 +94,13 @@ def sample_experiment_result():
         ],
         metadata=ExecutionMetadata(
             experiment_id="exp-001",
+            protocol_id="proto-001",
             start_time=datetime.utcnow(),
             end_time=datetime.utcnow(),
             duration_seconds=5.3,
-            random_seed=42
+            random_seed=42,
+            python_version="3.11",
+            platform="linux"
         ),
         raw_data={"mean_diff": 1.7},
         plots_generated=[],
@@ -109,14 +115,14 @@ def sample_hypothesis():
     return Hypothesis(
         id="hyp-001",
         research_question_id="rq-001",
+        research_question="Does treatment X increase outcome Y compared to control?",
         statement="Treatment X increases outcome Y compared to control",
-        rationale="Prior studies suggest mechanism via pathway Z",
+        rationale="Prior studies suggest mechanism via pathway Z operates through documented biological pathways",
         domain="biology",
         experiment_type="comparative",
         testability_score=0.9,
         novelty_score=0.7,
         feasibility_score=0.8,
-        expected_outcome="Positive effect with medium-large effect size",
         variables=["treatment", "control", "outcome_Y"],
         created_at=datetime.utcnow()
     )
@@ -382,14 +388,34 @@ class TestDetectionPipeline:
             primary_p_value=0.001,  # Very significant
             primary_effect_size=0.05,  # Tiny effect
             supports_hypothesis=True,
-            statistical_tests=[],
+            statistical_tests=[
+                StatisticalTestResult(
+                    test_type="T-test",
+                    test_name="T-test",
+                    statistic=3.5,
+                    p_value=0.001,
+                    effect_size=0.05,
+                    effect_size_type="Cohen's d",
+                    confidence_interval={"lower": 0.01, "upper": 0.09},
+                    sample_size=100,
+                    degrees_of_freedom=98,
+                    significance_label="***",
+                    is_primary=True,
+                    significant_0_05=True,
+                    significant_0_01=True,
+                    significant_0_001=True
+                )
+            ],
             variable_results=[],
             metadata=ExecutionMetadata(
                 experiment_id="exp-anom",
+                protocol_id="proto-anom",
                 start_time=datetime.utcnow(),
                 end_time=datetime.utcnow(),
                 duration_seconds=1.0,
-                random_seed=42
+                random_seed=42,
+                python_version="3.11",
+                platform="linux"
             ),
             created_at=datetime.utcnow()
         )
@@ -420,14 +446,34 @@ class TestDetectionPipeline:
                 primary_p_value=0.01,
                 primary_effect_size=0.5 + i * 0.1,  # Positive, increasing
                 supports_hypothesis=True,
-                statistical_tests=[],
+                statistical_tests=[
+                    StatisticalTestResult(
+                        test_type="T-test",
+                        test_name="T-test",
+                        statistic=2.5 + i * 0.2,
+                        p_value=0.01,
+                        effect_size=0.5 + i * 0.1,
+                        effect_size_type="Cohen's d",
+                        confidence_interval={"lower": 0.2 + i * 0.1, "upper": 0.8 + i * 0.1},
+                        sample_size=100,
+                        degrees_of_freedom=98,
+                        significance_label="**",
+                        is_primary=True,
+                        significant_0_05=True,
+                        significant_0_01=True,
+                        significant_0_001=False
+                    )
+                ],
                 variable_results=[],
                 metadata=ExecutionMetadata(
                     experiment_id=f"exp-{i}",
+                    protocol_id="proto-001",
                     start_time=datetime.utcnow(),
                     end_time=datetime.utcnow(),
                     duration_seconds=1.0,
-                    random_seed=42
+                    random_seed=42,
+                    python_version="3.11",
+                    platform="linux"
                 ),
                 created_at=datetime.utcnow()
             )

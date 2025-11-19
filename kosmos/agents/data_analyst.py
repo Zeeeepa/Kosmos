@@ -333,7 +333,7 @@ HYPOTHESIS:
 {hypothesis.statement}
 
 Domain: {hypothesis.domain}
-Expected Outcome: {hypothesis.expected_outcome or 'Not specified'}
+Expected Outcome: {getattr(hypothesis, 'expected_outcome', 'Not specified')}
 """)
 
         # Result summary

@@ -10,7 +10,7 @@ import numpy as np
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from kosmos.models.experiment import ExperimentProtocol, ExperimentType, Variable, VariableType
+from kosmos.models.experiment import ExperimentProtocol, ExperimentType, Variable, VariableType, ProtocolStep, ResourceRequirements, StatisticalTestSpec
 from kosmos.execution.code_generator import ExperimentCodeGenerator
 from kosmos.execution.executor import CodeExecutor, execute_protocol_code
 from kosmos.execution.result_collector import ResultCollector
@@ -24,15 +24,40 @@ def ttest_protocol():
     """Create T-test experiment protocol."""
     return ExperimentProtocol(
         id="integration-001",
+        name="Integration Test T-test Protocol",
         hypothesis_id="hyp-001",
+        domain="statistics",
         title="Integration Test - T-test",
-        description="Test complete pipeline with T-test",
+        description="Comprehensive test protocol for complete pipeline validation with T-test statistical analysis on treatment vs control groups",
+        objective="Validate complete execution pipeline from code generation through result collection",
         experiment_type=ExperimentType.DATA_ANALYSIS,
-        statistical_tests=["t-test"],
+        statistical_tests=[
+            StatisticalTestSpec(
+                test_type="t_test",
+                variables=["group", "score"],
+                description="Two-sample T-test comparing treatment vs control groups",
+                null_hypothesis="There is no difference in mean scores between groups"
+            )
+        ],
+        steps=[
+            ProtocolStep(
+                step_number=1,
+                title="Execute T-test Analysis",
+                description="Load CSV data and perform T-test comparison",
+                action="load_data_and_run_ttest",
+                expected_duration_minutes=5
+            )
+        ],
         variables={
-            "group": Variable(name="group", type=VariableType.INDEPENDENT, description="Treatment group"),
-            "score": Variable(name="score", type=VariableType.DEPENDENT, description="Test score")
+            "group": Variable(name="group", type=VariableType.INDEPENDENT, description="Treatment group assignment"),
+            "score": Variable(name="score", type=VariableType.DEPENDENT, description="Test score measurement")
         },
+        resource_requirements=ResourceRequirements(
+            estimated_runtime_seconds=300,
+            cpu_cores=1,
+            memory_gb=1,
+            storage_gb=0.1
+        ),
         data_requirements={"format": "csv", "columns": ["group", "score"]},
         random_seed=42,
         expected_duration_minutes=5
@@ -151,15 +176,40 @@ class TestTemplatePipeline:
 
         protocol = ExperimentProtocol(
             id="corr-001",
+            name="Correlation Test Protocol",
             hypothesis_id="hyp-001",
+            domain="statistics",
             title="Correlation Test",
-            description="Test correlation pipeline",
+            description="Comprehensive test protocol for correlation pipeline validation with statistical correlation analysis",
+            objective="Validate correlation analysis pipeline from data loading through statistical computation",
             experiment_type=ExperimentType.DATA_ANALYSIS,
-            statistical_tests=["correlation"],
+            statistical_tests=[
+                StatisticalTestSpec(
+                    test_type="correlation",
+                    variables=["group", "score"],
+                    description="Pearson correlation analysis between variables",
+                    null_hypothesis="There is no correlation between the variables"
+                )
+            ],
+            steps=[
+                ProtocolStep(
+                    step_number=1,
+                    title="Compute Correlation",
+                    description="Compute correlation between variables",
+                    action="compute_correlation",
+                    expected_duration_minutes=5
+                )
+            ],
             variables={
-                "group": Variable(name="group", type=VariableType.INDEPENDENT, description="X"),
-                "score": Variable(name="score", type=VariableType.DEPENDENT, description="Y")
+                "group": Variable(name="group", type=VariableType.INDEPENDENT, description="Independent X variable for correlation"),
+                "score": Variable(name="score", type=VariableType.DEPENDENT, description="Dependent Y variable for correlation")
             },
+            resource_requirements=ResourceRequirements(
+                estimated_runtime_seconds=300,
+                cpu_cores=1,
+                memory_gb=1,
+                storage_gb=0.1
+            ),
             data_requirements={},
             random_seed=42,
             expected_duration_minutes=5
