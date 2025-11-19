@@ -303,23 +303,25 @@ def reset_singletons():
     # This ensures tests don't interfere with each other
     yield
     # Reset singletons after test
-    from kosmos.knowledge.graph import reset_knowledge_graph
-    from kosmos.knowledge.vector_db import reset_vector_db
-    from kosmos.knowledge.embeddings import reset_embedder
-    from kosmos.knowledge.concept_extractor import reset_concept_extractor
-    from kosmos.literature.reference_manager import reset_reference_manager
-    from kosmos.world_model.factory import reset_world_model
+    # Each reset function is optional - try to import and call if available
+    reset_functions = [
+        ('kosmos.knowledge.graph', 'reset_knowledge_graph'),
+        ('kosmos.knowledge.vector_db', 'reset_vector_db'),
+        ('kosmos.knowledge.embeddings', 'reset_embedder'),
+        ('kosmos.knowledge.concept_extractor', 'reset_concept_extractor'),
+        ('kosmos.literature.reference_manager', 'reset_reference_manager'),
+        ('kosmos.world_model.factory', 'reset_world_model'),
+    ]
 
-    try:
-        reset_knowledge_graph()
-        reset_vector_db()
-        reset_embedder()
-        reset_concept_extractor()
-        reset_reference_manager()
-        reset_world_model()
-    except Exception:
-        # Silently ignore errors during cleanup
-        pass
+    for module_name, func_name in reset_functions:
+        try:
+            import importlib
+            module = importlib.import_module(module_name)
+            if hasattr(module, func_name):
+                getattr(module, func_name)()
+        except (ImportError, AttributeError, Exception):
+            # Function doesn't exist or module can't be imported - skip
+            pass
 
 
 @pytest.fixture(autouse=True)

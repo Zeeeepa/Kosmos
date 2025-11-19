@@ -291,24 +291,32 @@ def run_with_progress(director, question: str, max_iterations: int) -> dict:
             hypotheses_data = []
             experiments_data = []
 
-            try:
-                with get_session() as session:
-                    # Fetch hypotheses from database using IDs
-                    for h_id in director.research_plan.hypothesis_pool:
-                        hypothesis = get_hypothesis(session, h_id)
-                        if hypothesis:
-                            hypotheses_data.append(hypothesis.to_dict() if hasattr(hypothesis, 'to_dict') else str(hypothesis))
+            # Check if research_plan exists before accessing its attributes
+            if director.research_plan is None:
+                logger.warning("Research plan is not initialized")
+            else:
+                try:
+                    with get_session() as session:
+                        # Fetch hypotheses from database using IDs
+                        hypothesis_pool = getattr(director.research_plan, 'hypothesis_pool', []) or []
+                        for h_id in hypothesis_pool:
+                            hypothesis = get_hypothesis(session, h_id)
+                            if hypothesis:
+                                hypotheses_data.append(hypothesis.to_dict() if hasattr(hypothesis, 'to_dict') else str(hypothesis))
 
-                    # Fetch experiments from database using IDs
-                    for e_id in director.research_plan.completed_experiments:
-                        experiment = get_experiment(session, e_id)
-                        if experiment:
-                            experiments_data.append(experiment.to_dict() if hasattr(experiment, 'to_dict') else str(experiment))
-            except Exception as e:
-                logger.warning(f"Could not fetch all objects from database: {e}")
-                # Fallback: use IDs as strings
-                hypotheses_data = list(director.research_plan.hypothesis_pool)
-                experiments_data = list(director.research_plan.completed_experiments)
+                        # Fetch experiments from database using IDs
+                        completed_experiments = getattr(director.research_plan, 'completed_experiments', []) or []
+                        for e_id in completed_experiments:
+                            experiment = get_experiment(session, e_id)
+                            if experiment:
+                                experiments_data.append(experiment.to_dict() if hasattr(experiment, 'to_dict') else str(experiment))
+                except Exception as e:
+                    logger.warning(f"Could not fetch all objects from database: {e}")
+                    # Fallback: use IDs as strings
+                    hypothesis_pool = getattr(director.research_plan, 'hypothesis_pool', []) or []
+                    completed_experiments = getattr(director.research_plan, 'completed_experiments', []) or []
+                    hypotheses_data = list(hypothesis_pool)
+                    experiments_data = list(completed_experiments)
 
             results = {
                 "id": f"research_{int(time.time())}",

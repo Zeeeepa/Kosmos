@@ -416,12 +416,11 @@ class Neo4jWorldModel(WorldModelStorage, EntityManager):
         """
         # Use existing methods for standard relationship types
         if relationship.type == "CITES":
-            # Note: create_citation expects paper_id, cited_paper_id
+            # Note: create_citation expects citing_paper_id, cited_paper_id
             self.graph.create_citation(
-                paper_id=relationship.source_id,
+                citing_paper_id=relationship.source_id,
                 cited_paper_id=relationship.target_id,
-                context=relationship.properties.get("context"),
-                section=relationship.properties.get("section")
+                merge=True
             )
             return relationship.id
 

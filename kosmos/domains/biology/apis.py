@@ -404,6 +404,26 @@ class GTExClient:
             logger.error(f"GTEx gene expression error for {gene_id}: {e}")
             return None
 
+    def get_pqtl(self, snp_id: str, gene_id: str, tissue: str = "Whole_Blood") -> Optional[Dict[str, Any]]:
+        """
+        Get pQTL (protein QTL) data for SNP-gene pair.
+
+        Note: GTEx API primarily provides eQTL data. pQTL support is limited.
+        This is a stub implementation for future expansion.
+
+        Args:
+            snp_id: Variant ID
+            gene_id: Gene ID (Ensembl format)
+            tissue: GTEx tissue name
+
+        Returns:
+            pQTL data dict or None (currently not implemented)
+        """
+        # pQTL data is not currently available through GTEx public API
+        # This stub allows the code to run without errors
+        logger.debug(f"pQTL lookup not implemented for {snp_id}/{gene_id}")
+        return None
+
     def close(self):
         """Close HTTP client."""
         self.client.close()
@@ -456,6 +476,25 @@ class ENCODEClient:
         except Exception as e:
             logger.error(f"ENCODE search error: {e}")
             return None
+
+    def get_atac_peaks(self, snp_id: str, biosample: str = "K562") -> Optional[Dict[str, Any]]:
+        """
+        Get ATAC-seq peaks overlapping a genomic variant.
+
+        Note: This requires genomic coordinates for the SNP. Currently a stub
+        implementation for future expansion when SNP coordinate lookup is integrated.
+
+        Args:
+            snp_id: Variant ID (e.g., 'rs7903146')
+            biosample: Biosample name (default: K562)
+
+        Returns:
+            ATAC-seq peak data or None (currently not fully implemented)
+        """
+        # ATAC peak lookup requires converting SNP ID to genomic coordinates
+        # and then searching for overlapping peaks. This is a stub implementation.
+        logger.debug(f"ATAC-seq peak lookup not fully implemented for {snp_id}")
+        return None
 
     def close(self):
         """Close HTTP client."""

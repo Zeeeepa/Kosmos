@@ -12,12 +12,38 @@ import shutil
 import time
 import logging
 import threading
+import platform
+import re
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 import json
 
 logger = logging.getLogger(__name__)
+
+
+def _convert_path_for_docker(path: str) -> str:
+    """
+    Convert Windows paths to Docker-compatible format.
+
+    Docker on Windows requires paths in Unix-like format:
+    C:\\Users\\... -> /c/Users/...
+
+    Args:
+        path: Path string to convert
+
+    Returns:
+        Docker-compatible path string
+    """
+    if platform.system() == 'Windows':
+        # Convert Windows path to Docker format
+        # C:\Users\name -> /c/Users/name
+        path = path.replace('\\', '/')
+        # Handle drive letter (C: -> /c)
+        if len(path) >= 2 and path[1] == ':':
+            drive = path[0].lower()
+            path = f'/{drive}{path[2:]}'
+    return path
 
 
 class SandboxExecutionResult:
@@ -221,16 +247,19 @@ class DockerSandbox:
     ) -> SandboxExecutionResult:
         """Run code in Docker container with resource limits and monitoring."""
 
-        # Prepare volume mounts
+        # Prepare volume mounts (convert paths for Windows Docker compatibility)
+        code_path = _convert_path_for_docker(f"{temp_dir}/code")
+        output_path = _convert_path_for_docker(f"{temp_dir}/output")
         volumes = {
-            f"{temp_dir}/code": {'bind': '/workspace/code', 'mode': 'ro'},
-            f"{temp_dir}/output": {'bind': '/workspace/output', 'mode': 'rw'}
+            code_path: {'bind': '/workspace/code', 'mode': 'ro'},
+            output_path: {'bind': '/workspace/output', 'mode': 'rw'}
         }
 
         # Add data volume if exists
         data_dir = Path(temp_dir) / "data"
         if data_dir.exists():
-            volumes[str(data_dir)] = {'bind': '/workspace/data', 'mode': 'ro'}
+            data_path = _convert_path_for_docker(str(data_dir))
+            volumes[data_path] = {'bind': '/workspace/data', 'mode': 'ro'}
 
         # Prepare environment variables
         env = {

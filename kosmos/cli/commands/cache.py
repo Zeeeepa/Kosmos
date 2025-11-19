@@ -249,7 +249,7 @@ def clear_specific_cache(cache_manager, cache_type: str):
     console.print()
 
     # Validate cache type
-    valid_types = ["claude", "experiment", "embedding", "general"]
+    valid_types = ["claude", "experiment", "embedding", "general", "literature"]
     if cache_type.lower() not in valid_types:
         print_error(f"Invalid cache type. Must be one of: {', '.join(valid_types)}")
         raise typer.Exit(1)
@@ -261,7 +261,11 @@ def clear_specific_cache(cache_manager, cache_type: str):
     with console.status(f"[yellow]Clearing {cache_type} cache...[/yellow]"):
         from kosmos.core.cache_manager import CacheType
 
-        cache_type_enum = CacheType[cache_type.upper()]
+        try:
+            cache_type_enum = CacheType[cache_type.upper()]
+        except KeyError:
+            print_error(f"Cache type '{cache_type}' not found in CacheType enum")
+            raise typer.Exit(1)
         cache_manager.clear(cache_type_enum)
 
     print_success(f"{cache_type.title()} cache cleared successfully", title="Cache Cleared")
