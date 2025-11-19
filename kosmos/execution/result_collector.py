@@ -276,9 +276,11 @@ class ResultCollector:
                 var_type = protocol.variables[var_name].type.value
 
             # Calculate summary statistics
-            data_clean = data.dropna()
+            # Ensure numeric type and handle non-numeric values
+            data_numeric = pd.to_numeric(data, errors='coerce')
+            data_clean = data_numeric.dropna()
 
-            if len(data_clean) > 0 and pd.api.types.is_numeric_dtype(data_clean):
+            if len(data_clean) > 0:
                 mean = float(np.mean(data_clean))
                 median = float(np.median(data_clean))
                 std = float(np.std(data_clean, ddof=1)) if len(data_clean) > 1 else 0.0

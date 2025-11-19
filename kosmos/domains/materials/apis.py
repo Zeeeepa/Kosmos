@@ -669,14 +669,22 @@ class PerovskiteDBClient:
             if composition_cols:
                 for col in composition_cols:
                     if col in df.columns:
-                        composition[col] = row[col]
+                        try:
+                            val = row.get(col)
+                            composition[col] = float(val) if val is not None else 0.0
+                        except (ValueError, TypeError):
+                            composition[col] = 0.0
 
             # Extract fabrication parameters
             fabrication = {}
             if fabrication_cols:
                 for col in fabrication_cols:
                     if col in df.columns:
-                        fabrication[col] = row[col]
+                        try:
+                            val = row.get(col)
+                            fabrication[col] = float(val) if val is not None else 0.0
+                        except (ValueError, TypeError):
+                            fabrication[col] = 0.0
 
             # Extract performance metrics
             jsc = row.get(jsc_col) if jsc_col in df.columns else None
