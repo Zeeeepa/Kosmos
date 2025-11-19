@@ -237,10 +237,14 @@ class DockerSandbox:
                 drive = path[0].lower()
                 path = f'/{drive}{path[2:]}'
 
-        # Handle WSL paths (/mnt/c/... is already correct)
+        # Handle WSL paths (/mnt/c/... -> /c/... for Docker Desktop)
         elif path.startswith('/mnt/'):
-            # Already in WSL format
-            pass
+            # Extract drive letter from /mnt/c/... format
+            parts = path.split('/')
+            if len(parts) >= 3 and len(parts[2]) == 1:
+                drive = parts[2].lower()
+                rest = '/'.join(parts[3:])
+                path = f'/{drive}/{rest}'
 
         return path
 

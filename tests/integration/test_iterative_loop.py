@@ -6,6 +6,7 @@ message passing, and feedback integration.
 """
 
 import json
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch, MagicMock
 import pytest
 
@@ -13,7 +14,7 @@ from kosmos.agents.research_director import ResearchDirectorAgent, NextAction
 from kosmos.core.workflow import WorkflowState, ResearchWorkflow, ResearchPlan
 from kosmos.models.hypothesis import Hypothesis, HypothesisStatus
 from kosmos.models.result import ExperimentResult, ResultStatus, ExecutionMetadata, StatisticalTestResult
-from kosmos.models.experiment import ExperimentProtocol
+from kosmos.models.experiment import ExperimentProtocol, Variable, VariableType, ResourceRequirements
 
 
 # ============================================================================
@@ -105,12 +106,16 @@ class TestSingleIteration:
                 description="Run statistical analysis on caffeine performance data",
                 expected_duration_minutes=5
             )],
-            variables={"caffeine_dose": Variable(name="caffeine_dose", description="Caffeine dose in milligrams", unit="mg")},
+            variables={"caffeine_dose": Variable(
+                name="caffeine_dose",
+                type=VariableType.INDEPENDENT,
+                description="Caffeine dose in milligrams",
+                unit="mg"
+            )},
             resource_requirements=ResourceRequirements(
-                estimated_runtime_seconds=300,
-                cpu_cores=1,
+                compute_hours=0.083,  # 300 seconds / 3600
                 memory_gb=1,
-                storage_gb=0.1
+                data_size_gb=0.1
             )
         )
 
@@ -128,12 +133,21 @@ class TestSingleIteration:
         # Simulate execution completion
         result = ExperimentResult(
             id="result_001",
+            experiment_id="exp_001",
+            protocol_id=protocol.id,
             hypothesis_id=hypothesis.id,
             supports_hypothesis=True,
             primary_p_value=0.01,
             primary_effect_size=0.75,
             primary_test="t-test",
             status=ResultStatus.SUCCESS,
+            metadata=ExecutionMetadata(
+                start_time=datetime.now(timezone.utc),
+                end_time=datetime.now(timezone.utc),
+                duration_seconds=5.0,
+                python_version="3.11",
+                platform="linux"
+            )
         )
 
         director.research_plan.add_result(result.id)
@@ -524,12 +538,21 @@ class TestFeedbackIntegration:
 
         result = ExperimentResult(
             id="result_001",
+            experiment_id="exp_001",
+            protocol_id="proto_001",
             hypothesis_id=hypothesis.id,
             supports_hypothesis=True,
             primary_p_value=0.01,
             primary_effect_size=0.75,
             primary_test="t-test",
             status=ResultStatus.SUCCESS,
+            metadata=ExecutionMetadata(
+                start_time=datetime.now(timezone.utc),
+                end_time=datetime.now(timezone.utc),
+                duration_seconds=5.0,
+                python_version="3.11",
+                platform="linux"
+            )
         )
 
         # Process feedback

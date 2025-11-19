@@ -124,7 +124,14 @@ def get_session() -> Generator[Session, None, None]:
         ```
     """
     if _SessionLocal is None:
-        raise RuntimeError("Database not initialized. Call init_database() first.")
+        # Auto-initialize with default configuration
+        try:
+            init_from_config()
+        except Exception as e:
+            raise RuntimeError(
+                f"Database not initialized and auto-initialization failed: {e}. "
+                "Call init_database() or init_from_config() explicitly."
+            )
 
     session = _SessionLocal()
     try:
