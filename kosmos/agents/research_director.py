@@ -1291,14 +1291,13 @@ Provide a structured, actionable plan in 2-3 paragraphs.
                         # Run async evaluation - handle both sync and async contexts
                         try:
                             loop = asyncio.get_running_loop()
-                            # Already in async context - create task
+                            # Already in async context - use run_coroutine_threadsafe
                             import concurrent.futures
-                            with concurrent.futures.ThreadPoolExecutor() as executor:
-                                future = executor.submit(
-                                    asyncio.run,
-                                    self.evaluate_hypotheses_concurrently(hypothesis_batch)
-                                )
-                                evaluations = future.result()
+                            future = asyncio.run_coroutine_threadsafe(
+                                self.evaluate_hypotheses_concurrently(hypothesis_batch),
+                                loop
+                            )
+                            evaluations = future.result()
                         except RuntimeError:
                             # No running loop - safe to use asyncio.run
                             evaluations = asyncio.run(
@@ -1359,14 +1358,13 @@ Provide a structured, actionable plan in 2-3 paragraphs.
                         # Run async analysis - handle both sync and async contexts
                         try:
                             loop = asyncio.get_running_loop()
-                            # Already in async context - use thread pool
+                            # Already in async context - use run_coroutine_threadsafe
                             import concurrent.futures
-                            with concurrent.futures.ThreadPoolExecutor() as executor:
-                                future = executor.submit(
-                                    asyncio.run,
-                                    self.analyze_results_concurrently(result_batch)
-                                )
-                                analyses = future.result()
+                            future = asyncio.run_coroutine_threadsafe(
+                                self.analyze_results_concurrently(result_batch),
+                                loop
+                            )
+                            analyses = future.result()
                         except RuntimeError:
                             # No running loop - safe to use asyncio.run
                             analyses = asyncio.run(

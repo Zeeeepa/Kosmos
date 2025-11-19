@@ -18,7 +18,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_compl
 from typing import List, Dict, Any, Callable, Optional, Tuple
 from dataclasses import dataclass
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 logger = logging.getLogger(__name__)
@@ -295,7 +295,7 @@ def _execute_single_experiment(
     Note:
         This function must be pickleable (top-level function) for multiprocessing.
     """
-    started_at = datetime.utcnow()
+    started_at = datetime.now(timezone.utc)
     start_time = time.time()
 
     try:
@@ -311,7 +311,7 @@ def _execute_single_experiment(
         )
 
         execution_time = time.time() - start_time
-        completed_at = datetime.utcnow()
+        completed_at = datetime.now(timezone.utc)
 
         return ParallelExecutionResult(
             experiment_id=task.experiment_id,
@@ -325,7 +325,7 @@ def _execute_single_experiment(
 
     except Exception as e:
         execution_time = time.time() - start_time
-        completed_at = datetime.utcnow()
+        completed_at = datetime.now(timezone.utc)
 
         logger.error(f"Exception executing {task.experiment_id}: {e}")
 

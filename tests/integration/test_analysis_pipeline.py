@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 import tempfile
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from kosmos.agents.data_analyst import DataAnalystAgent, ResultInterpretation
 from kosmos.analysis.visualization import PublicationVisualizer
@@ -86,8 +86,8 @@ def sample_experiment_result():
             )
         ],
         metadata=ExecutionMetadata(
-            start_time=datetime.utcnow(),
-            end_time=datetime.utcnow(),
+            start_time=datetime.now(timezone.utc),
+            end_time=datetime.now(timezone.utc),
             duration_seconds=5.3,
             random_seed=42,
             python_version="3.11",
@@ -96,7 +96,7 @@ def sample_experiment_result():
         raw_data={"mean_diff": 1.7},
         generated_files=[],
         version=1,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
 
 
@@ -112,7 +112,7 @@ def sample_hypothesis():
         testability_score=0.9,
         novelty_score=0.7,
         confidence_score=0.8,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
 
 
@@ -395,14 +395,14 @@ class TestDetectionPipeline:
             ],
             variable_results=[],
             metadata=ExecutionMetadata(
-                start_time=datetime.utcnow(),
-                end_time=datetime.utcnow(),
+                start_time=datetime.now(timezone.utc),
+                end_time=datetime.now(timezone.utc),
                 duration_seconds=1.0,
                 random_seed=42,
                 python_version="3.11",
                 platform="linux"
             ),
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
 
         anomalies = agent.detect_anomalies(anomalous_result)
@@ -453,14 +453,14 @@ class TestDetectionPipeline:
                 metadata=ExecutionMetadata(
                     experiment_id=f"exp-{i}",
                     protocol_id="proto-001",
-                    start_time=datetime.utcnow(),
-                    end_time=datetime.utcnow(),
+                    start_time=datetime.now(timezone.utc),
+                    end_time=datetime.now(timezone.utc),
                     duration_seconds=1.0,
                     random_seed=42,
                     python_version="3.11",
                     platform="linux"
                 ),
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc)
             )
             for i in range(5)
         ]

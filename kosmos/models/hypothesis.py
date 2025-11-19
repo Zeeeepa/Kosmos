@@ -7,7 +7,7 @@ Complements the SQLAlchemy Hypothesis model in kosmos.db.models.
 
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, validator, field_validator
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -329,4 +329,4 @@ class PrioritizedHypothesis(BaseModel):
     def update_hypothesis_priority(self) -> None:
         """Update the hypothesis object with this priority score."""
         self.hypothesis.priority_score = self.priority_score
-        self.hypothesis.updated_at = datetime.utcnow()
+        self.hypothesis.updated_at = datetime.now(timezone.utc)

@@ -599,10 +599,8 @@ class TestFeedbackIntegration:
                 )
             ],
             metadata=ExecutionMetadata(
-                experiment_id="exp_002",
-                protocol_id="proto_002",
-                start_time=datetime.utcnow(),
-                end_time=datetime.utcnow(),
+                start_time=datetime.now(timezone.utc),
+                end_time=datetime.now(timezone.utc),
                 duration_seconds=1.0,
                 python_version="3.11",
                 platform="linux"
@@ -709,10 +707,8 @@ class TestFeedbackIntegration:
                     )
                 ],
                 metadata=ExecutionMetadata(
-                    experiment_id=f"exp_{i}",
-                    protocol_id=f"proto_{i}",
-                    start_time=datetime.utcnow(),
-                    end_time=datetime.utcnow(),
+                    start_time=datetime.now(timezone.utc),
+                    end_time=datetime.now(timezone.utc),
                     duration_seconds=1.0,
                     python_version="3.11",
                     platform="linux"
