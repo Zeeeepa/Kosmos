@@ -1,15 +1,36 @@
 # Kosmos E2E Testing Plan
 
-**Status:** 🟢 Testing Framework Operational - Full Suite Validated
+**Status:** 🟢 Phase 1 Complete - Core Pipeline Validated
 **Provider:** DeepSeek API
-**Budget:** $20 (~140-200 test runs)
-**Last Updated:** 2025-11-20 (Suite validation run completed)
+**Budget:** $20 total ($19.99 remaining after Phase 1)
+**Last Updated:** 2025-11-20 (Phase 1 sanity testing complete)
 
 ---
 
 ## ✅ Completed Tests
 
-### Phase 1: Critical Sanity Tests
+### Phase 1: Sanity Testing - COMPLETE
+
+**Test Suite:** `tests/e2e/test_system_sanity.py`
+**Results:** 4 passed, 1 failed, 7 skipped (35.75s total)
+**Budget Used:** ~$0.01 (DeepSeek actual usage)
+**Status:** SUCCESS - Core pipeline validated
+
+**Validated Components:**
+- ✅ LLM Provider Integration (DeepSeek API)
+- ✅ Hypothesis Generator Agent
+- ✅ Code Executor (direct mode)
+- ✅ End-to-End Mini Workflow (Question → Hypothesis → Analysis → Results)
+
+**Known Limitations:**
+- ❌ ExperimentDesigner - PromptTemplate API issue
+- ⏭️ 7 components skipped - API investigation needed
+
+See `PHASE1_SANITY_TEST_RESULTS.md` for complete details.
+
+---
+
+### Phase 0: Initial Tests
 
 ### Test 1: Biology Research Workflow (Enhanced)
 - **Status:** ✅ PASSED (21.95s)
