@@ -266,7 +266,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 # OpenAI
 LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o
+OPENAI_MODEL=gpt-5-nano
 
 # LiteLLM (supports 100+ providers including local models)
 LLM_PROVIDER=litellm
