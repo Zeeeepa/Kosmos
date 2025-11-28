@@ -292,15 +292,111 @@ print(f"RESULT:{result}")
         finally:
             sandbox.cleanup()
 
-    @pytest.mark.skip(reason="DataAnalysis module API needs deeper investigation - complex setup")
     def test_statistical_analysis(self):
         """Test statistical analysis functions."""
-        pass
+        from kosmos.execution.data_analysis import DataAnalyzer
+        import pandas as pd
+        import numpy as np
 
-    @pytest.mark.skip(reason="DataAnalyst agent API needs deeper investigation - complex setup")
+        print("\n📊 Testing statistical analysis...")
+
+        # Create test data with known statistical properties
+        np.random.seed(42)
+        control = np.random.normal(100, 15, 50)
+        treatment = np.random.normal(120, 15, 50)  # ~20 point difference
+
+        df = pd.DataFrame({
+            'group': ['control'] * 50 + ['treatment'] * 50,
+            'score': np.concatenate([control, treatment])
+        })
+
+        # Test t-test
+        result = DataAnalyzer.ttest_comparison(
+            df, 'group', 'score', ('treatment', 'control')
+        )
+
+        # Verify result structure
+        assert 't_statistic' in result
+        assert 'p_value' in result
+        assert 'mean_difference' in result
+        assert 'significance_label' in result
+
+        # Verify statistical correctness
+        assert result['p_value'] < 0.05, "Expected significant difference"
+        assert result['significance_label'] in ['*', '**', '***'], "Expected significant result"
+        assert abs(result['mean_difference']) > 15, "Expected meaningful difference"
+
+        print(f"✅ Statistical analysis operational")
+        print(f"   t-statistic: {result['t_statistic']:.3f}")
+        print(f"   p-value: {result['p_value']:.6f}")
+        print(f"   Mean diff: {result['mean_difference']:.2f}")
+        print(f"   Significance: {result['significance_label']}")
+
+    @pytest.mark.skipif(
+        not os.getenv("ANTHROPIC_API_KEY") and not os.getenv("OPENAI_API_KEY"),
+        reason="API key required"
+    )
     def test_data_analyst(self):
         """Test data analyst interprets results."""
-        pass
+        from kosmos.agents.data_analyst import DataAnalystAgent
+        from kosmos.models.result import (
+            ExperimentResult, ResultStatus, StatisticalTestResult,
+            ExecutionMetadata
+        )
+        from datetime import datetime
+        import platform as plat
+
+        print("\n🔍 Testing data analyst agent...")
+
+        # Create sample experiment result with all required fields
+        result = ExperimentResult(
+            id="test-result-001",
+            experiment_id="exp-001",
+            hypothesis_id="hyp-001",
+            protocol_id="proto-001",
+            status=ResultStatus.SUCCESS,
+            primary_test="Two-sample T-test",
+            primary_p_value=0.003,
+            primary_effect_size=1.2,
+            supports_hypothesis=True,
+            statistical_tests=[
+                StatisticalTestResult(
+                    test_type="t-test",
+                    test_name="Two-sample T-test",
+                    statistic=3.45,
+                    p_value=0.003,
+                    effect_size=1.2,
+                    effect_size_type="Cohen's d",
+                    significant_0_05=True,
+                    significant_0_01=True,
+                    significant_0_001=False,
+                    significance_label="**",
+                    sample_size=100,
+                    is_primary=True
+                )
+            ],
+            metadata=ExecutionMetadata(
+                experiment_id="exp-001",
+                protocol_id="proto-001",
+                start_time=datetime.utcnow(),
+                end_time=datetime.utcnow(),
+                duration_seconds=5.0,
+                python_version="3.11",
+                platform=plat.system()
+            )
+        )
+
+        agent = DataAnalystAgent()
+        interpretation = agent.interpret_results(result=result)
+
+        assert interpretation is not None
+        assert hasattr(interpretation, 'summary')
+        assert len(interpretation.summary) > 0
+
+        print(f"✅ Data analyst operational")
+        print(f"   Hypothesis supported: {interpretation.hypothesis_supported}")
+        print(f"   Confidence: {interpretation.confidence}")
+        print(f"   Summary: {interpretation.summary[:100]}...")
 
     def test_database_persistence(self):
         """Test database persistence works."""
