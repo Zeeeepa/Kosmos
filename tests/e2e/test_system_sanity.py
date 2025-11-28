@@ -254,10 +254,43 @@ print(f"Mean: {result}")
         print(f"   Time: {exec_result.execution_time:.3f}s")
         print(f"   Output: {exec_result.stdout.strip()}")
 
-    @pytest.mark.skip(reason="Sandbox API needs investigation")
     def test_sandboxed_execution(self):
         """Test Docker sandbox execution."""
-        pass
+        from kosmos.execution.sandbox import DockerSandbox
+
+        print("\n🐳 Testing Docker sandbox execution...")
+
+        # Create sandbox with conservative limits for testing
+        sandbox = DockerSandbox(
+            cpu_limit=1.0,
+            memory_limit="512m",
+            timeout=60,
+            enable_monitoring=True
+        )
+
+        try:
+            # Execute simple code
+            code = """
+import numpy as np
+data = [1, 2, 3, 4, 5]
+result = np.mean(data)
+print(f"Mean: {result}")
+print(f"RESULT:{result}")
+"""
+            result = sandbox.execute(code)
+
+            assert result.success is True, f"Execution failed: {result.error}"
+            assert result.exit_code == 0, f"Non-zero exit code: {result.exit_code}"
+            assert "Mean: 3.0" in result.stdout, f"Expected output not found: {result.stdout}"
+            assert result.timeout_occurred is False, "Unexpected timeout"
+
+            print(f"✅ Docker sandbox execution successful")
+            print(f"   Output: {result.stdout.strip()[:100]}")
+            print(f"   Execution time: {result.execution_time:.2f}s")
+            if result.resource_stats:
+                print(f"   Resources: {result.resource_stats}")
+        finally:
+            sandbox.cleanup()
 
     @pytest.mark.skip(reason="DataAnalysis module API needs deeper investigation - complex setup")
     def test_statistical_analysis(self):

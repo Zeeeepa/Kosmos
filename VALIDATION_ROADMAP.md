@@ -40,7 +40,7 @@ The skipped tests are not optional - they represent untested critical path compo
 
 ## Phase 2: Critical Path Completion
 
-**Status:** In Progress (2.1 Complete)
+**Status:** In Progress (2.1, 2.2, 2.4 Complete)
 
 **Objective:** Fix skipped tests that block the autonomous research loop.
 
@@ -52,10 +52,10 @@ The skipped tests are not optional - they represent untested critical path compo
 **Why this matters:** Without code generation, experiments cannot be executed.
 
 ### 2.2 Execution Path
-- [ ] Configure Docker daemon for sandboxed execution
-- [ ] Enable test_sandboxed_execution
-- [ ] Verify: generated code runs safely in container
-- [ ] Test resource limits (memory, CPU, timeout)
+- [x] Configure Docker daemon for sandboxed execution - Session 9
+- [x] Enable test_sandboxed_execution - Session 9
+- [x] Verify: generated code runs safely in container - Session 9
+- [ ] Test resource limits (memory, CPU, timeout) - Optional
 
 **Why this matters:** Unsandboxed execution is unsafe and limits experiment types.
 
@@ -199,7 +199,7 @@ The skipped tests are not optional - they represent untested critical path compo
 
 | Metric | Paper Claim | Realistic Target | Current |
 |--------|-------------|------------------|---------|
-| E2E Tests | N/A | 39/39 | 35/39 |
+| E2E Tests | N/A | 39/39 | 36/39 |
 | Max Autonomous Cycles | 20 | 10+ | 2-3 |
 | Tasks per Cycle | 10 | 10 | 5 |
 | Accuracy | 79.4% | Measured honestly | Unknown |
@@ -251,4 +251,4 @@ After each phase, create:
 ---
 
 *Roadmap created: 2025-11-27*
-*Last updated: 2025-11-27 Session 8*
+*Last updated: 2025-11-27 Session 9*

@@ -255,13 +255,13 @@ class DockerSandbox:
         }
 
         # Container configuration
+        # Note: 'remove' is not valid for containers.create(), only for containers.run()
         container_config = {
             'image': self.image,
             'command': ['python3', '/workspace/code/experiment.py'],
             'volumes': volumes,
             'environment': env,
             'detach': True,
-            'remove': False,  # We'll remove manually after getting logs
             'mem_limit': self.memory_limit,
             'nano_cpus': int(self.cpu_limit * 1e9),  # Convert to nano CPUs
             'network_disabled': self.network_disabled,
