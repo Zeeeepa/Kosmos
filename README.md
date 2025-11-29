@@ -139,6 +139,7 @@ Reference repositories in [`kosmos-reference/`](kosmos-reference/). Skills integ
 |----------|-------|------|------|------|-------|
 | Unit tests | 339 | 339 | 0 | 0 | Core gap implementations |
 | Integration | 43 | 43 | 0 | 0 | Pipeline tests |
+| LiteLLM provider | 22 | 22 | 0 | 0 | Multi-provider support |
 | E2E tests | 39 | 32 | 0 | 7 | Tested with Ollama |
 
 The 7 skipped E2E tests are due to:
@@ -154,23 +155,23 @@ The 7 skipped E2E tests are due to:
 - Result analysis and interpretation
 - Multi-provider LLM support (Anthropic, OpenAI, LiteLLM/Ollama)
 - Basic research cycle progression
+- Docker-based sandboxed code execution (requires Docker to be running)
 - Debug mode with configurable verbosity (levels 0-3)
 - Real-time stage tracking with JSON output
 - LLM call instrumentation across all providers
 - Provider timeout configuration
+- Cost calculation and usage tracking per provider
 - Model comparison infrastructure (see [MODEL_COMPARISON_REPORT.md](MODEL_COMPARISON_REPORT.md))
 
 ### What Does Not Work Yet
 
-1. **Docker sandbox execution**: Code execution currently runs without containerization. The sandbox implementation exists but is not integrated into tests.
+1. **Knowledge graph**: Neo4j integration requires external database setup. The code exists but is untested in E2E flows.
 
-2. **Knowledge graph**: Neo4j integration requires external database setup. The code exists but is untested in E2E flows.
+2. **Full autonomous loop**: While individual components work, running 20 cycles with 10 tasks each (as described in the paper) has not been validated. The workflow tends to converge early or requires manual intervention.
 
-3. **Full autonomous loop**: While individual components work, running 20 cycles with 10 tasks each (as described in the paper) has not been validated. The workflow tends to converge early or requires manual intervention.
+3. **Budget enforcement**: Cost calculation is implemented in all providers, but there is no mechanism to halt execution when a budget limit is reached.
 
-4. **Cost tracking**: No mechanism to track or limit API costs during long research runs.
-
-5. **Literature search**: The `arxiv` package has Python 3.11+ compatibility issues. Literature features are limited.
+4. **Literature search**: The `arxiv` package has Python 3.11+ compatibility issues. Literature features are limited.
 
 ### Honest Assessment
 
@@ -199,7 +200,7 @@ The project is suitable for experimentation and further development, not product
 
 3. **Python only**: The paper references R packages (MendelianRandomization, susieR). This implementation is Python-only.
 
-4. **LLM costs**: Running 20 research cycles with 10 tasks each requires significant API usage. No cost optimization beyond caching.
+4. **LLM costs**: Running 20 research cycles with 10 tasks each requires significant API usage. Cost tracking is implemented but budget enforcement during execution is not.
 
 5. **Single-user**: No multi-tenancy or user isolation.
 
