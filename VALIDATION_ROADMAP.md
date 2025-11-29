@@ -139,6 +139,20 @@ The skipped tests are not optional - they represent untested critical path compo
 
 **Exit Criteria:** System completes 10+ cycles producing coherent output - **ACHIEVED**
 
+### 3.5 Literature Integration (Session 15)
+- [x] Fix literature search API hang issues
+- [x] Add 60s timeout to ThreadPoolExecutor (unified_search.py)
+- [x] Add 30s timeout to PubMed Entrez calls (pubmed_client.py)
+- [x] Add 30s per-paper timeout for PDF extraction
+- [x] Add `--with-literature` CLI flag to baseline_workflow.py
+- [ ] Run full workflow with literature enabled (in progress)
+
+**Session 15 Results:**
+- Literature search timeout working (returns partial results on timeout)
+- Verified: "Literature search timed out after 60s. Completed sources: ['arxiv', 'pubmed']"
+- Workflow continues without hanging
+- Commit: 75307fe
+
 ---
 
 ## Phase 4: Model Tier Comparison
