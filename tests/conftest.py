@@ -698,3 +698,86 @@ def sample_research_plan():
         'rationale': 'Investigate KRAS mutations',
         'exploration_ratio': 0.5
     }
+
+
+# ============================================================================
+# Real Service Fixtures (for integration/E2E tests)
+# ============================================================================
+
+@pytest.fixture
+def deepseek_client():
+    """DeepSeek client via LiteLLM for cost-effective unit tests.
+
+    Uses DeepSeek 3.2 model for real LLM testing.
+    Skips if DEEPSEEK_API_KEY is not set.
+    """
+    api_key = os.getenv("DEEPSEEK_API_KEY")
+    if not api_key:
+        pytest.skip("DEEPSEEK_API_KEY required for real LLM tests")
+    try:
+        import litellm
+        litellm.set_verbose = False
+        return litellm
+    except ImportError:
+        pytest.skip("litellm package required")
+
+
+@pytest.fixture
+def real_anthropic_client():
+    """Real Anthropic client for E2E tests.
+
+    Uses Anthropic Haiku for production-compatible testing.
+    Skips if ANTHROPIC_API_KEY is not set.
+    """
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY required for E2E tests")
+    try:
+        import anthropic
+        return anthropic.Anthropic(api_key=api_key)
+    except ImportError:
+        pytest.skip("anthropic package required")
+
+
+@pytest.fixture
+def real_vector_db(temp_dir):
+    """Real ChromaDB with ephemeral storage.
+
+    Creates an in-memory ChromaDB client for testing.
+    """
+    try:
+        import chromadb
+        return chromadb.Client()
+    except ImportError:
+        pytest.skip("chromadb package required")
+
+
+@pytest.fixture
+def real_embedder():
+    """Real SentenceTransformer embedder.
+
+    Downloads and uses all-MiniLM-L6-v2 model.
+    First run may take time to download the model.
+    """
+    try:
+        from sentence_transformers import SentenceTransformer
+        return SentenceTransformer("all-MiniLM-L6-v2")
+    except ImportError:
+        pytest.skip("sentence-transformers package required")
+
+
+@pytest.fixture
+def real_knowledge_graph():
+    """Real Neo4j connection.
+
+    Connects to Neo4j database using environment configuration.
+    Skips if Neo4j is not available.
+    """
+    try:
+        from kosmos.knowledge.graph import KnowledgeGraph
+        kg = KnowledgeGraph()
+        if not kg.connected:
+            pytest.skip("Neo4j not available")
+        yield kg
+    except Exception as e:
+        pytest.skip(f"KnowledgeGraph initialization failed: {e}")

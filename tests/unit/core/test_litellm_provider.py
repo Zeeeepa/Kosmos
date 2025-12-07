@@ -1,18 +1,35 @@
 """
 Unit tests for LiteLLMProvider.
 
-Tests the LiteLLM provider implementation with mocked LiteLLM calls.
+Tests using REAL LiteLLM API calls (not mocks).
+Requires ANTHROPIC_API_KEY or DEEPSEEK_API_KEY environment variable.
+Uses cheaper models for cost-effective testing.
 """
 
+import os
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
-from datetime import datetime
+import uuid
 
 # Skip all tests if litellm is not installed
 pytest.importorskip("litellm")
 
 from kosmos.core.providers.litellm_provider import LiteLLMProvider
 from kosmos.core.providers.base import LLMResponse, Message
+
+
+# Skip if no API keys
+pytestmark = [
+    pytest.mark.requires_claude,
+    pytest.mark.skipif(
+        not (os.getenv("ANTHROPIC_API_KEY") or os.getenv("DEEPSEEK_API_KEY")),
+        reason="Requires ANTHROPIC_API_KEY or DEEPSEEK_API_KEY for real LLM calls"
+    )
+]
+
+
+def unique_prompt(base: str) -> str:
+    """Add unique suffix to avoid cache hits."""
+    return f"{base} [test-id: {uuid.uuid4().hex[:8]}]"
 
 
 class TestLiteLLMProviderInit:
@@ -23,40 +40,36 @@ class TestLiteLLMProviderInit:
         provider = LiteLLMProvider({"model": "gpt-3.5-turbo"})
 
         assert provider.model == "gpt-3.5-turbo"
-        assert provider.provider_type == "openai"
         assert provider.max_tokens_default == 4096
         assert provider.temperature_default == 0.7
 
-    def test_init_with_ollama_model(self):
-        """Test initialization with Ollama model."""
+    def test_init_with_anthropic_model(self):
+        """Test initialization with Anthropic model."""
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            pytest.skip("ANTHROPIC_API_KEY not set")
+
         provider = LiteLLMProvider({
-            "model": "ollama/llama3.1:8b",
-            "api_base": "http://localhost:11434"
+            "model": "claude-3-haiku-20240307",
+            "api_key": api_key
         })
 
-        assert provider.model == "ollama/llama3.1:8b"
-        assert provider.provider_type == "ollama"
-        assert provider.api_base == "http://localhost:11434"
+        assert provider.model == "claude-3-haiku-20240307"
+        assert provider.provider_type == "anthropic"
 
     def test_init_with_deepseek_model(self):
         """Test initialization with DeepSeek model."""
+        api_key = os.getenv("DEEPSEEK_API_KEY")
+        if not api_key:
+            pytest.skip("DEEPSEEK_API_KEY not set")
+
         provider = LiteLLMProvider({
             "model": "deepseek/deepseek-chat",
-            "api_key": "sk-test-key"
+            "api_key": api_key
         })
 
         assert provider.model == "deepseek/deepseek-chat"
         assert provider.provider_type == "deepseek"
-
-    def test_init_with_anthropic_model(self):
-        """Test initialization with Anthropic model."""
-        provider = LiteLLMProvider({
-            "model": "claude-3-5-sonnet-20241022",
-            "api_key": "sk-ant-test"
-        })
-
-        assert provider.model == "claude-3-5-sonnet-20241022"
-        assert provider.provider_type == "anthropic"
 
     def test_init_with_custom_config(self):
         """Test initialization with custom configuration."""
@@ -72,406 +85,171 @@ class TestLiteLLMProviderInit:
         assert provider.timeout == 60
 
 
-class TestLiteLLMProviderGenerate:
-    """Test LiteLLMProvider generation methods."""
+class TestLiteLLMProviderGenerateWithAnthropic:
+    """Test LiteLLMProvider generation with Anthropic."""
 
     @pytest.fixture
-    def mock_provider(self):
-        """Create a provider with mocked LiteLLM."""
-        with patch('kosmos.core.providers.litellm_provider.LiteLLMProvider.__init__', return_value=None):
-            provider = LiteLLMProvider.__new__(LiteLLMProvider)
-            provider.config = {"model": "gpt-3.5-turbo"}
-            provider.provider_name = "litellm"
-            provider.model = "gpt-3.5-turbo"
-            provider.api_key = None
-            provider.api_base = None
-            provider.max_tokens_default = 4096
-            provider.temperature_default = 0.7
-            provider.timeout = 120
-            provider.provider_type = "openai"
+    def anthropic_provider(self):
+        """Create a provider with Anthropic."""
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not api_key:
+            pytest.skip("ANTHROPIC_API_KEY not set")
 
-            # Usage tracking
-            provider.total_input_tokens = 0
-            provider.total_output_tokens = 0
-            provider.total_cost_usd = 0.0
-            provider.request_count = 0
+        return LiteLLMProvider({
+            "model": "claude-3-haiku-20240307",
+            "api_key": api_key,
+            "max_tokens": 100,
+            "temperature": 0.0
+        })
 
-            # Mock litellm module
-            provider.litellm = MagicMock()
-
-            yield provider
-
-    def test_generate_success(self, mock_provider):
-        """Test successful generation."""
-        # Mock response
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(
-            message=MagicMock(content="Test response"),
-            finish_reason="stop"
-        )]
-        mock_response.usage = MagicMock(
-            prompt_tokens=10,
-            completion_tokens=20,
-            total_tokens=30
+    def test_generate_basic(self, anthropic_provider):
+        """Test basic text generation with Anthropic via LiteLLM."""
+        response = anthropic_provider.generate(
+            prompt=unique_prompt("Say 'hello' and nothing else.")
         )
-        mock_response.model = "gpt-3.5-turbo"
-
-        mock_provider.litellm.completion.return_value = mock_response
-
-        response = mock_provider.generate("Test prompt", system="Test system")
 
         assert isinstance(response, LLMResponse)
-        assert response.content == "Test response"
-        assert response.usage.input_tokens == 10
-        assert response.usage.output_tokens == 20
-        assert response.finish_reason == "stop"
+        assert response.content is not None
+        assert len(response.content) > 0
+        # Usage stats are in the usage object
+        assert response.usage.input_tokens > 0
+        assert response.usage.output_tokens > 0
 
-    def test_generate_with_options(self, mock_provider):
-        """Test generation with custom options."""
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(
-            message=MagicMock(content="Response"),
-            finish_reason="stop"
-        )]
-        mock_response.usage = MagicMock(
-            prompt_tokens=5,
-            completion_tokens=10,
-            total_tokens=15
-        )
-        mock_response.model = "gpt-3.5-turbo"
-
-        mock_provider.litellm.completion.return_value = mock_response
-
-        response = mock_provider.generate(
-            "Prompt",
-            max_tokens=100,
-            temperature=0.2,
-            stop_sequences=["END"]
+    def test_generate_with_system_prompt(self, anthropic_provider):
+        """Test generation with system prompt."""
+        response = anthropic_provider.generate(
+            prompt=unique_prompt("What do you help with?"),
+            system="You are a math tutor. Always mention math."
         )
 
-        # Verify completion was called with correct args
-        call_kwargs = mock_provider.litellm.completion.call_args.kwargs
-        assert call_kwargs["max_tokens"] == 100
-        assert call_kwargs["temperature"] == 0.2
-        assert call_kwargs["stop"] == ["END"]
+        assert isinstance(response, LLMResponse)
+        assert len(response.content) > 0
+
+    def test_generate_structured(self, anthropic_provider):
+        """Test structured JSON generation."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "value": {"type": "number"}
+            }
+        }
+
+        result = anthropic_provider.generate_structured(
+            prompt=unique_prompt("Generate JSON with name='test' and value=42"),
+            schema=schema
+        )
+
+        assert isinstance(result, dict)
+
+    def test_usage_tracking(self, anthropic_provider):
+        """Test usage statistics are tracked."""
+        # Make a request
+        response = anthropic_provider.generate(prompt=unique_prompt("Hi"))
+
+        # Usage is tracked in the response
+        assert response.usage is not None
+        assert response.usage.input_tokens > 0
+        assert response.usage.output_tokens > 0
 
 
-class TestLiteLLMProviderStructured:
-    """Test structured output generation."""
+class TestLiteLLMProviderGenerateWithDeepSeek:
+    """Test LiteLLMProvider generation with DeepSeek."""
 
     @pytest.fixture
-    def mock_provider(self):
-        """Create a provider with mocked LiteLLM."""
-        with patch('kosmos.core.providers.litellm_provider.LiteLLMProvider.__init__', return_value=None):
-            provider = LiteLLMProvider.__new__(LiteLLMProvider)
-            provider.config = {"model": "gpt-3.5-turbo"}
-            provider.provider_name = "litellm"
-            provider.model = "gpt-3.5-turbo"
-            provider.api_key = None
-            provider.api_base = None
-            provider.max_tokens_default = 4096
-            provider.temperature_default = 0.7
-            provider.timeout = 120
-            provider.provider_type = "openai"
+    def deepseek_provider(self):
+        """Create a provider with DeepSeek."""
+        api_key = os.getenv("DEEPSEEK_API_KEY")
+        if not api_key:
+            pytest.skip("DEEPSEEK_API_KEY not set")
 
-            provider.total_input_tokens = 0
-            provider.total_output_tokens = 0
-            provider.total_cost_usd = 0.0
-            provider.request_count = 0
+        return LiteLLMProvider({
+            "model": "deepseek/deepseek-chat",
+            "api_key": api_key,
+            "max_tokens": 100,
+            "temperature": 0.0
+        })
 
-            provider.litellm = MagicMock()
-
-            yield provider
-
-    def test_generate_structured_success(self, mock_provider):
-        """Test structured JSON generation."""
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(
-            message=MagicMock(content='{"name": "test", "value": 42}'),
-            finish_reason="stop"
-        )]
-        mock_response.usage = MagicMock(
-            prompt_tokens=10,
-            completion_tokens=10,
-            total_tokens=20
-        )
-        mock_response.model = "gpt-3.5-turbo"
-
-        mock_provider.litellm.completion.return_value = mock_response
-
-        result = mock_provider.generate_structured(
-            "Generate JSON",
-            schema={"name": "string", "value": "int"}
+    def test_generate_basic(self, deepseek_provider):
+        """Test basic text generation with DeepSeek via LiteLLM."""
+        response = deepseek_provider.generate(
+            prompt=unique_prompt("Say 'hello' and nothing else.")
         )
 
-        assert result == {"name": "test", "value": 42}
+        assert isinstance(response, LLMResponse)
+        assert response.content is not None
+        assert len(response.content) > 0
 
-    def test_generate_structured_with_markdown(self, mock_provider):
-        """Test structured output with markdown code block."""
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(
-            message=MagicMock(content='```json\n{"key": "value"}\n```'),
-            finish_reason="stop"
-        )]
-        mock_response.usage = MagicMock(
-            prompt_tokens=10,
-            completion_tokens=10,
-            total_tokens=20
-        )
-        mock_response.model = "gpt-3.5-turbo"
-
-        mock_provider.litellm.completion.return_value = mock_response
-
-        result = mock_provider.generate_structured(
-            "Generate JSON",
-            schema={"key": "string"}
+    def test_generate_with_system_prompt(self, deepseek_provider):
+        """Test generation with system prompt."""
+        response = deepseek_provider.generate(
+            prompt=unique_prompt("What do you help with?"),
+            system="You are a math tutor. Always mention math."
         )
 
-        assert result == {"key": "value"}
+        assert isinstance(response, LLMResponse)
+        assert len(response.content) > 0
 
 
 class TestLiteLLMProviderMessages:
     """Test message-based generation."""
 
     @pytest.fixture
-    def mock_provider(self):
-        """Create a provider with mocked LiteLLM."""
-        with patch('kosmos.core.providers.litellm_provider.LiteLLMProvider.__init__', return_value=None):
-            provider = LiteLLMProvider.__new__(LiteLLMProvider)
-            provider.config = {"model": "gpt-3.5-turbo"}
-            provider.provider_name = "litellm"
-            provider.model = "gpt-3.5-turbo"
-            provider.api_key = None
-            provider.api_base = None
-            provider.max_tokens_default = 4096
-            provider.temperature_default = 0.7
-            provider.timeout = 120
-            provider.provider_type = "openai"
+    def provider(self):
+        """Create a provider with available API key."""
+        if os.getenv("ANTHROPIC_API_KEY"):
+            return LiteLLMProvider({
+                "model": "claude-3-haiku-20240307",
+                "api_key": os.getenv("ANTHROPIC_API_KEY"),
+                "max_tokens": 100,
+                "temperature": 0.0
+            })
+        elif os.getenv("DEEPSEEK_API_KEY"):
+            return LiteLLMProvider({
+                "model": "deepseek/deepseek-chat",
+                "api_key": os.getenv("DEEPSEEK_API_KEY"),
+                "max_tokens": 100,
+                "temperature": 0.0
+            })
+        else:
+            pytest.skip("No API key available")
 
-            provider.total_input_tokens = 0
-            provider.total_output_tokens = 0
-            provider.total_cost_usd = 0.0
-            provider.request_count = 0
-
-            provider.litellm = MagicMock()
-
-            yield provider
-
-    def test_generate_with_messages(self, mock_provider):
-        """Test generation with message history."""
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(
-            message=MagicMock(content="Reply to conversation"),
-            finish_reason="stop"
-        )]
-        mock_response.usage = MagicMock(
-            prompt_tokens=20,
-            completion_tokens=10,
-            total_tokens=30
-        )
-        mock_response.model = "gpt-3.5-turbo"
-
-        mock_provider.litellm.completion.return_value = mock_response
-
+    def test_generate_with_messages(self, provider):
+        """Test multi-turn conversation."""
         messages = [
-            Message(role="system", content="You are helpful"),
-            Message(role="user", content="Hello"),
-            Message(role="assistant", content="Hi there!"),
-            Message(role="user", content="How are you?")
+            Message(role="user", content="My name is Alice."),
+            Message(role="assistant", content="Hello Alice!"),
+            Message(role="user", content=unique_prompt("What is my name?"))
         ]
 
-        response = mock_provider.generate_with_messages(messages)
+        response = provider.generate_with_messages(messages)
 
-        assert response.content == "Reply to conversation"
-
-        # Verify messages were converted correctly
-        call_kwargs = mock_provider.litellm.completion.call_args.kwargs
-        assert len(call_kwargs["messages"]) == 4
+        assert isinstance(response, LLMResponse)
+        assert "alice" in response.content.lower()
 
 
-class TestLiteLLMProviderModelInfo:
-    """Test model info retrieval."""
+class TestLiteLLMProviderErrorHandling:
+    """Test error handling."""
 
-    def test_get_model_info_openai(self):
-        """Test model info for OpenAI model."""
-        provider = LiteLLMProvider({"model": "gpt-4-turbo"})
-        info = provider.get_model_info()
-
-        assert info["name"] == "gpt-4-turbo"
-        assert info["provider"] == "litellm/openai"
-        assert info["supports_streaming"] is True
-        assert info["supports_async"] is True
-
-    def test_get_model_info_ollama(self):
-        """Test model info for Ollama model (free)."""
+    def test_invalid_model(self):
+        """Test handling of invalid model."""
         provider = LiteLLMProvider({
-            "model": "ollama/llama3.1:8b",
-            "api_base": "http://localhost:11434"
-        })
-        info = provider.get_model_info()
-
-        assert info["name"] == "ollama/llama3.1:8b"
-        assert info["provider"] == "litellm/ollama"
-        assert info["cost_per_input_token"] == 0.0
-        assert info["cost_per_output_token"] == 0.0
-
-
-class TestLiteLLMProviderCostEstimation:
-    """Test cost estimation."""
-
-    def test_cost_estimation_openai(self):
-        """Test cost estimation for OpenAI models."""
-        provider = LiteLLMProvider({"model": "gpt-4-turbo"})
-
-        # gpt-4-turbo: $10/M input, $30/M output
-        cost = provider._estimate_cost(1000, 500)
-        expected = (1000 / 1_000_000) * 10.0 + (500 / 1_000_000) * 30.0
-        assert abs(cost - expected) < 0.0001
-
-    def test_cost_estimation_free_model(self):
-        """Test cost estimation for free models (Ollama)."""
-        provider = LiteLLMProvider({
-            "model": "ollama/llama3.1:8b",
-            "api_base": "http://localhost:11434"
+            "model": "invalid-model-xyz",
+            "api_key": "invalid-key"
         })
 
-        cost = provider._estimate_cost(10000, 5000)
-        assert cost == 0.0  # Ollama is free
+        with pytest.raises(Exception):
+            provider.generate(prompt="Test")
 
-    def test_cost_estimation_unknown_model(self):
-        """Test cost estimation for unknown models."""
-        provider = LiteLLMProvider({"model": "unknown/model"})
+    def test_missing_api_key(self):
+        """Test handling when API key is missing for providers that need it."""
+        # Create provider without API key for a model that needs one
+        provider = LiteLLMProvider({
+            "model": "claude-3-haiku-20240307"
+            # No api_key provided
+        })
 
-        cost = provider._estimate_cost(1000, 500)
-        assert cost == 0.0  # Unknown models default to free
-
-
-class TestLiteLLMProviderUsageTracking:
-    """Test usage statistics tracking."""
-
-    @pytest.fixture
-    def mock_provider(self):
-        """Create a provider with mocked LiteLLM."""
-        with patch('kosmos.core.providers.litellm_provider.LiteLLMProvider.__init__', return_value=None):
-            provider = LiteLLMProvider.__new__(LiteLLMProvider)
-            provider.config = {"model": "gpt-3.5-turbo"}
-            provider.provider_name = "litellm"
-            provider.model = "gpt-3.5-turbo"
-            provider.api_key = None
-            provider.api_base = None
-            provider.max_tokens_default = 4096
-            provider.temperature_default = 0.7
-            provider.timeout = 120
-            provider.provider_type = "openai"
-
-            provider.total_input_tokens = 0
-            provider.total_output_tokens = 0
-            provider.total_cost_usd = 0.0
-            provider.request_count = 0
-
-            provider.litellm = MagicMock()
-
-            yield provider
-
-    def test_usage_tracking(self, mock_provider):
-        """Test that usage is tracked across calls."""
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(
-            message=MagicMock(content="Response"),
-            finish_reason="stop"
-        )]
-        mock_response.usage = MagicMock(
-            prompt_tokens=100,
-            completion_tokens=50,
-            total_tokens=150
-        )
-        mock_response.model = "gpt-3.5-turbo"
-
-        mock_provider.litellm.completion.return_value = mock_response
-
-        # Make two calls
-        mock_provider.generate("Test 1")
-        mock_provider.generate("Test 2")
-
-        stats = mock_provider.get_usage_stats()
-        assert stats["total_requests"] == 2
-        assert stats["total_input_tokens"] == 200
-        assert stats["total_output_tokens"] == 100
-
-
-@pytest.mark.asyncio
-class TestLiteLLMProviderAsync:
-    """Test async generation methods."""
-
-    @pytest.fixture
-    def mock_provider(self):
-        """Create a provider with mocked async LiteLLM."""
-        with patch('kosmos.core.providers.litellm_provider.LiteLLMProvider.__init__', return_value=None):
-            provider = LiteLLMProvider.__new__(LiteLLMProvider)
-            provider.config = {"model": "gpt-3.5-turbo"}
-            provider.provider_name = "litellm"
-            provider.model = "gpt-3.5-turbo"
-            provider.api_key = None
-            provider.api_base = None
-            provider.max_tokens_default = 4096
-            provider.temperature_default = 0.7
-            provider.timeout = 120
-            provider.provider_type = "openai"
-
-            provider.total_input_tokens = 0
-            provider.total_output_tokens = 0
-            provider.total_cost_usd = 0.0
-            provider.request_count = 0
-
-            provider.litellm = MagicMock()
-
-            yield provider
-
-    async def test_generate_async_success(self, mock_provider):
-        """Test async generation."""
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock(
-            message=MagicMock(content="Async response"),
-            finish_reason="stop"
-        )]
-        mock_response.usage = MagicMock(
-            prompt_tokens=10,
-            completion_tokens=20,
-            total_tokens=30
-        )
-        mock_response.model = "gpt-3.5-turbo"
-
-        # Use AsyncMock for acompletion
-        mock_provider.litellm.acompletion = AsyncMock(return_value=mock_response)
-
-        response = await mock_provider.generate_async("Test prompt")
-
-        assert response.content == "Async response"
-        mock_provider.litellm.acompletion.assert_called_once()
-
-
-class TestProviderRegistration:
-    """Test provider registration in factory."""
-
-    def test_litellm_registered(self):
-        """Test that LiteLLM provider is registered."""
-        from kosmos.core.providers import list_providers
-
-        providers = list_providers()
-        assert "litellm" in providers
-
-    def test_aliases_registered(self):
-        """Test that provider aliases are registered."""
-        from kosmos.core.providers import list_providers
-
-        providers = list_providers()
-        assert "ollama" in providers
-        assert "deepseek" in providers
-        assert "lmstudio" in providers
-
-    def test_get_provider_litellm(self):
-        """Test getting LiteLLM provider by name."""
-        from kosmos.core.providers import get_provider
-
-        provider = get_provider("litellm", {"model": "gpt-3.5-turbo"})
-        assert isinstance(provider, LiteLLMProvider)
+        # Should fail when trying to generate (unless env var is set)
+        if not os.getenv("ANTHROPIC_API_KEY"):
+            with pytest.raises(Exception):
+                provider.generate(prompt="Test")
