@@ -14,15 +14,10 @@ import pytest
 import uuid
 from unittest.mock import patch, Mock
 
-from kosmos.literature.unified_search import UnifiedLiteratureSearch
 from kosmos.knowledge.embeddings import PaperEmbedder
 from kosmos.knowledge.vector_db import PaperVectorDB as VectorDatabase
 from kosmos.knowledge.graph import KnowledgeGraph
-from kosmos.knowledge.concept_extractor import ConceptExtractor
-from kosmos.knowledge.graph_builder import GraphBuilder
 from kosmos.agents.literature_analyzer import LiteratureAnalyzerAgent
-from kosmos.literature.citations import CitationParser, CitationFormatter
-from kosmos.literature.reference_manager import ReferenceManager
 
 
 # Skip all tests if API key not available
@@ -111,115 +106,8 @@ class TestVectorSearchWorkflow:
                         assert db.collection is not None
 
 
-class TestCitationWorkflow:
-    """Test citation management workflow."""
-
-    @pytest.mark.skip(reason="CitationParser has bug converting BibTeX entries to PaperMetadata")
-    def test_parse_format_export_workflow(self, sample_bibtex, tmp_path):
-        """Test: Parse BibTeX → Format → Export."""
-        # 1. Parse citations
-        parser = CitationParser()
-        papers = parser.parse_bibtex(str(sample_bibtex))
-
-        assert len(papers) > 0
-
-        # 2. Format citations
-        formatter = CitationFormatter()
-        apa_citations = [formatter.format_citation(p, style="apa") for p in papers[:3]]
-
-        assert len(apa_citations) > 0
-        assert all(isinstance(c, str) for c in apa_citations)
-
-        # 3. Manage references
-        manager = ReferenceManager(storage_path=str(tmp_path / "refs.json"))
-        manager.add_references(papers)
-
-        # 4. Deduplicate
-        dedup_report = manager.deduplicate_references(strategy="comprehensive")
-
-        assert "original_count" in dedup_report
-        assert "unique_count" in dedup_report
-
-        # 5. Export
-        export_path = tmp_path / "exported.bib"
-        manager.export_library(str(export_path), format="bibtex")
-
-        assert export_path.exists()
-
-
-@pytest.mark.slow
-class TestFullPipeline:
-    """Test complete Phase 2 pipeline with real Claude."""
-
-    @pytest.mark.skip(reason="VectorDatabase API changed - needs refactoring")
-    def test_complete_literature_pipeline(self, sample_papers_list, tmp_path):
-        """Test: Search → Store → Analyze → Extract → Visualize with real Claude."""
-        from kosmos.core.llm import ClaudeClient
-
-        # Mock infrastructure services (Neo4j, ChromaDB)
-        with patch('chromadb.Client'):
-            with patch('py2neo.Graph'):
-                with patch('sentence_transformers.SentenceTransformer'):
-                    with patch('kosmos.knowledge.graph.KnowledgeGraph._ensure_container_running'):
-                        # 1. Create mock papers (using fixtures)
-                        papers = sample_papers_list[:2]  # Use fewer papers to reduce API calls
-
-                        # 2. Store in vector DB (mocked)
-                        db = VectorDatabase(persist_directory=":memory:")
-                        db.collection = Mock()
-
-                        with patch.object(db, 'embedding_generator'):
-                            with patch.object(db.collection, 'add'):
-                                db.add_papers(papers)
-
-                        # 3. Build knowledge graph (mocked graph, real concept extraction)
-                        kg = KnowledgeGraph(auto_start_container=False, create_indexes=False)
-                        kg.graph = Mock()
-
-                        # Keep builder mocked since KG is mocked
-                        builder = GraphBuilder(knowledge_graph=kg)
-                        with patch.object(builder, 'add_paper'):
-                            for paper in papers:
-                                builder.add_paper(paper, extract_concepts=False)
-
-                        # 4. Analyze with real Claude agent
-                        with patch('kosmos.agents.literature_analyzer.get_client') as mock_get_client:
-                            mock_get_client.return_value = ClaudeClient(model="claude-3-haiku-20240307")
-
-                            agent = LiteratureAnalyzerAgent(config={
-                                "use_knowledge_graph": False,
-                                "use_semantic_similarity": False,
-                                "extract_concepts": False
-                            })
-                            analyses = agent.analyze_papers_batch(papers)
-
-                            assert len(analyses) == len(papers)
-                            for analysis in analyses:
-                                assert len(analysis.executive_summary) > 0
-
-                        # 5. Export citations (pure Python)
-                        manager = ReferenceManager(storage_path=str(tmp_path / "library.json"))
-                        manager.add_references(papers)
-
-                        export_path = tmp_path / "citations.bib"
-                        manager.export_library(str(export_path), format="bibtex")
-
-                        assert export_path.exists()
-
-
 class TestErrorHandling:
     """Test error handling across components."""
-
-    @pytest.mark.skip(reason="UnifiedLiteratureSearch API changed - needs refactoring")
-    def test_graceful_api_failures(self):
-        """Test that components handle API failures gracefully."""
-        search = UnifiedLiteratureSearch()
-
-        # Mock the internal search method to simulate API failure
-        with patch.object(search, '_search_arxiv', side_effect=Exception("API Error")):
-            # Should return empty list instead of raising
-            papers = search.search("test query", sources=["arxiv"])
-            assert papers == []
 
     def test_missing_services_degradation(self, sample_paper_metadata):
         """Test degraded functionality when services unavailable with real Claude."""

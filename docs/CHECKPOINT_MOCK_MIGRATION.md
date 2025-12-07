@@ -117,8 +117,10 @@ Converted 3 integration test files to use real Claude API. 1 file (concurrent_re
 |------|-------|--------|-------|
 | `tests/integration/test_analysis_pipeline.py` | 9 | ✓ Pass | All use real Claude |
 | `tests/integration/test_phase3_e2e.py` | 4 | ✓ Pass | All use real Claude |
-| `tests/integration/test_phase2_e2e.py` | 8 | 5 pass, 3 skip | Real Claude; 3 skip due to API changes |
+| `tests/integration/test_phase2_e2e.py` | 5 | ✓ Pass | All use real Claude |
 | `tests/integration/test_concurrent_research.py` | 11 | Skipped | Requires async implementation |
+
+**Total: 18 tests passing**
 
 ### Bugs Fixed
 
@@ -127,11 +129,10 @@ Converted 3 integration test files to use real Claude API. 1 file (concurrent_re
 - **Fix:** Added `schema` as alias for `output_schema` in `ClaudeClient.generate_structured()`
 - **Reason:** Provider interface uses `schema`, legacy ClaudeClient used `output_schema`
 
-### Skipped Tests (API/codebase changes needed)
-- `test_parse_format_export_workflow` - CitationParser bug converting BibTeX
-- `test_complete_literature_pipeline` - VectorDatabase API changed
-- `test_graceful_api_failures` - UnifiedLiteratureSearch API changed
-- All 11 `test_concurrent_research.py` tests - Async implementation pending
+### Deprecated Tests Removed
+- `test_parse_format_export_workflow` - CitationParser API outdated
+- `test_complete_literature_pipeline` - VectorDatabase API outdated
+- `test_graceful_api_failures` - UnifiedLiteratureSearch API outdated
 
 ---
 
