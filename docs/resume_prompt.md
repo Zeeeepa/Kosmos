@@ -2,7 +2,7 @@
 
 ## Context
 
-You are resuming work on the Kosmos project after a context compaction. The previous sessions implemented **10 paper implementation gaps** (3 BLOCKER + 5 Critical + 2 High).
+You are resuming work on the Kosmos project after a context compaction. The previous sessions implemented **11 paper implementation gaps** (3 BLOCKER + 5 Critical + 3 High).
 
 ## What Was Done
 
@@ -20,30 +20,28 @@ You are resuming work on the Kosmos project after a context compaction. The prev
 | #58 | Agent Rollout Tracking | New RolloutTracker class + integration in ResearchDirector |
 | #59 | h5ad/Parquet Data Formats | `DataLoader.load_h5ad()` and `load_parquet()` methods |
 | #69 | R Language Execution | `RExecutor` class + Docker image with TwoSampleMR |
+| #60 | Figure Generation | `FigureManager` class + code template integration |
 
-### Key Files Created/Modified (This Session)
+### Key Files Created/Modified (Recent)
 
 | File | Changes |
 |------|---------|
-| `kosmos/execution/data_analysis.py` | Added `load_h5ad()`, `load_parquet()` |
-| `kosmos/execution/r_executor.py` | **NEW** - R execution engine |
-| `kosmos/execution/executor.py` | Added R integration, `execute_r()` |
-| `docker/sandbox/Dockerfile.r` | **NEW** - R-enabled Docker image |
-| `pyproject.toml` | Added pyarrow to science dependencies |
-| `tests/unit/execution/test_r_executor.py` | **NEW** - 36 R executor tests |
-| `tests/integration/test_data_formats.py` | **NEW** - 14 data format tests |
-| `tests/integration/test_r_execution.py` | **NEW** - 22 R execution tests |
+| `kosmos/execution/figure_manager.py` | **NEW** - FigureManager class |
+| `kosmos/execution/code_generator.py` | Added figure generation to 4 templates |
+| `kosmos/world_model/artifacts.py` | Added figure_paths, figure_metadata to Finding |
+| `tests/unit/execution/test_figure_manager.py` | **NEW** - 35 unit tests |
+| `tests/integration/test_figure_generation.py` | **NEW** - 19 integration tests |
 
-## Remaining Work (7 gaps)
+## Remaining Work (6 gaps)
 
-### Implementation Order (R done early for execution environment)
+### Implementation Order
 
 | Phase | Order | Issue | Description | Status |
 |-------|-------|-------|-------------|--------|
 | 1 | 1 | #59 | h5ad/Parquet Data Formats | ✅ Complete |
 | 1 | 2 | #69 | R Language Support | ✅ Complete |
-| 2 | 3 | #60 | Figure Generation | **Next** |
-| 2 | 4 | #61 | Jupyter Notebook Generation | Pending |
+| 2 | 3 | #60 | Figure Generation | ✅ Complete |
+| 2 | 4 | #61 | Jupyter Notebook Generation | **Next** |
 | 3 | 5 | #70 | Null Model Statistical Validation | Pending |
 | 3 | 6 | #63 | Failure Mode Detection | Pending |
 | 4 | 7 | #62 | Code Line Provenance | Pending |
@@ -59,61 +57,58 @@ You are resuming work on the Kosmos project after a context compaction. The prev
 ## Key Documentation
 
 - `docs/CHECKPOINT.md` - Full session summary
-- `docs/PAPER_IMPLEMENTATION_GAPS.md` - 17 tracked gaps (10 complete)
+- `docs/PAPER_IMPLEMENTATION_GAPS.md` - 17 tracked gaps (11 complete)
 - `/home/jim/.claude/plans/peppy-floating-feather.md` - Full implementation plan
 - GitHub Issues #54-#70 - Detailed tracking
 
 ## Quick Verification Commands
 
 ```bash
-# Verify new implementations
+# Verify figure generation
 python -c "
-from kosmos.execution.data_analysis import DataLoader
-from kosmos.execution.r_executor import RExecutor, is_r_code
-from kosmos.execution.executor import CodeExecutor
+from kosmos.execution.figure_manager import FigureManager, FigureMetadata
+from kosmos.world_model.artifacts import Finding
 
-# Test h5ad/parquet support
-print('DataLoader methods:', [m for m in dir(DataLoader) if m.startswith('load_')])
+# Test FigureManager
+fm = FigureManager(artifacts_dir='/tmp/test', use_visualizer=False)
+print('Plot type for t_test:', fm.select_plot_type('t_test'))
+print('Plot type for correlation:', fm.select_plot_type('correlation'))
 
-# Test R executor
-executor = RExecutor()
-print(f'R available: {executor.is_r_available()}')
-print(f'Language detection: {executor.detect_language(\"library(dplyr)\")}')
-
-# Test CodeExecutor R integration
-ce = CodeExecutor()
-print(f'CodeExecutor R available: {ce.is_r_available()}')
+# Test Finding with figure_paths
+f = Finding(finding_id='f1', cycle=1, task_id=1, summary='test', statistics={}, figure_paths=['path/fig.png'])
+print('Finding figure_paths:', f.figure_paths)
 print('All imports successful')
 "
 
-# Run tests for completed features
-python -m pytest tests/unit/execution/test_data_analysis.py::TestDataLoaderH5ad tests/unit/execution/test_data_analysis.py::TestDataLoaderParquet -v --tb=short
-python -m pytest tests/unit/execution/test_r_executor.py -v --tb=short
+# Run tests
+python -m pytest tests/unit/execution/test_figure_manager.py -v --tb=short
+python -m pytest tests/integration/test_figure_generation.py -v --tb=short
 ```
 
 ## Resume Command
 
 Start by reading the checkpoint:
 ```
-Read docs/CHECKPOINT.md and docs/PAPER_IMPLEMENTATION_GAPS.md, then continue with the next item: #60 - Figure Generation
+Read docs/CHECKPOINT.md and docs/PAPER_IMPLEMENTATION_GAPS.md, then continue with the next item: #61 - Jupyter Notebook Generation
 ```
 
 ## Progress Summary
 
-**10/17 gaps fixed (59% complete)**
+**11/17 gaps fixed (65% complete)**
 
 | Priority | Status |
 |----------|--------|
 | BLOCKER | 3/3 complete ✅ |
 | Critical | 5/5 complete ✅ |
-| High | 2/5 complete |
+| High | 3/5 complete |
 | Medium | 0/2 remaining |
 | Low | 0/2 remaining |
 
 ## Next Step
 
-Continue with **#60 - Figure Generation**:
-- Create `FigureManager` class for matplotlib plot handling
-- Add code templates for common plot types
-- Track figures in world model artifacts
-- Save to `artifacts/cycle_N/figures/`
+Continue with **#61 - Jupyter Notebook Generation**:
+- Create `NotebookGenerator` class using nbformat
+- Support Python and R kernels
+- Embed code cells with outputs and figures
+- Save to `artifacts/cycle_N/notebooks/`
+- Track total line count
