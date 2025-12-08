@@ -4,7 +4,7 @@
 
 ## Status: ✓ COMPLETE
 
-All 4 phases of mock-to-real test migration are complete.
+All 5 phases of mock-to-real test migration are complete.
 
 ---
 
@@ -16,7 +16,8 @@ All 4 phases of mock-to-real test migration are complete.
 | Phase 2 | Knowledge Layer Tests | 57 | ✓ Complete |
 | Phase 3 | Agent Tests | 128 | ✓ Complete |
 | Phase 4 | Integration Tests | 18 | ✓ Complete |
-| **Total** | | **246** | ✓ |
+| Phase 5 | Concurrent Research Tests | 11 | ✓ Complete |
+| **Total** | | **257** | ✓ |
 
 ---
 
@@ -146,6 +147,31 @@ pytest tests/unit/core/ tests/unit/knowledge/ tests/unit/agents/ tests/integrati
 
 ---
 
+## Phase 5: Concurrent Research Tests (11 tests)
+
+Enabled 11 previously-skipped tests for concurrent research operations.
+
+| File | Tests | Description |
+|------|-------|-------------|
+| `tests/integration/test_concurrent_research.py` | 11 | Async hypothesis evaluation, parallel execution, thread safety |
+
+### What Was Done
+1. Added `tokens_used` and `latency_ms` compatibility properties to `BatchResponse`
+2. Fixed test mock fixtures to use correct field names (`input_tokens`, `output_tokens`, `execution_time`)
+3. Removed skip marker and added proper pytest markers
+4. Fixed patch paths to target actual module locations
+5. Fixed `experiment_queue` usage (list, not set)
+
+### Key Discovery
+The async infrastructure was **already fully implemented**:
+- `AsyncClaudeClient` in `kosmos/core/async_llm.py`
+- `ParallelExperimentExecutor` in `kosmos/execution/parallel.py`
+- Async methods in `ResearchDirectorAgent`
+
+The tests were skipped due to field name mismatches, not missing implementation.
+
+---
+
 ## Infrastructure Requirements
 
 - **Docker**: Neo4j container (kosmos-neo4j)
@@ -161,3 +187,4 @@ pytest tests/unit/core/ tests/unit/knowledge/ tests/unit/agents/ tests/integrati
 - `7ebd56b` - Convert Phase 2 knowledge layer tests from mocks to real services
 - `6483787` - Convert Phase 4 integration tests to use real Claude API
 - `f8b4426` - Remove deprecated integration tests with outdated API usage
+- (pending) - Enable concurrent research tests with BatchResponse compatibility

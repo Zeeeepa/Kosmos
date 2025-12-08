@@ -192,6 +192,16 @@ class BatchResponse:
     output_tokens: int = 0
     execution_time: float = 0.0
 
+    @property
+    def tokens_used(self) -> int:
+        """Total tokens (input + output) for compatibility."""
+        return self.input_tokens + self.output_tokens
+
+    @property
+    def latency_ms(self) -> float:
+        """Execution time in milliseconds for compatibility."""
+        return self.execution_time * 1000
+
 
 class RateLimiter:
     """

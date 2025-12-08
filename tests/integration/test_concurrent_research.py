@@ -3,16 +3,23 @@ Integration tests for concurrent research operations.
 
 Tests Research Director with concurrent hypothesis evaluation,
 experiment execution, and result analysis.
+
+Uses mocked AsyncClaudeClient and ParallelExperimentExecutor to test
+concurrent workflows without making real API calls.
 """
 
+import os
 import pytest
 import asyncio
 from unittest.mock import MagicMock, patch, AsyncMock
 
 from kosmos.agents.research_director import ResearchDirectorAgent
 
-# Skip all tests in this file - requires Phase 2/3 async features
-pytestmark = pytest.mark.skip(reason="Requires Phase 2/3 async implementation (AsyncClaudeClient, ParallelExperimentExecutor)")
+# Integration test markers - these tests use mocks so don't require API key
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.asyncio,
+]
 
 
 class TestConcurrentHypothesisEvaluation:
@@ -21,7 +28,7 @@ class TestConcurrentHypothesisEvaluation:
     @pytest.fixture
     def mock_async_client(self):
         """Mock AsyncClaudeClient."""
-        with patch('kosmos.agents.research_director.AsyncClaudeClient') as mock:
+        with patch('kosmos.core.async_llm.AsyncClaudeClient') as mock:
             client = AsyncMock()
 
             # Mock batch_generate to return evaluations
@@ -32,8 +39,9 @@ class TestConcurrentHypothesisEvaluation:
                         id=req.id,
                         response='{"testability": 8, "novelty": 7, "impact": 9, "recommendation": "proceed", "reasoning": "Strong hypothesis"}',
                         success=True,
-                        tokens_used=50,
-                        latency_ms=100.0
+                        input_tokens=30,
+                        output_tokens=20,
+                        execution_time=0.1
                     )
                     for req in requests
                 ]
@@ -81,8 +89,9 @@ class TestConcurrentHypothesisEvaluation:
                     id=req.id,
                     response='{"testability": 8, "novelty": 7, "impact": 9, "recommendation": "proceed"}',
                     success=True,
-                    tokens_used=50,
-                    latency_ms=100.0
+                    input_tokens=30,
+                    output_tokens=20,
+                    execution_time=0.1
                 )
                 for req in requests
             ]
@@ -111,7 +120,7 @@ class TestConcurrentExperimentExecution:
     @pytest.fixture
     def mock_parallel_executor(self):
         """Mock ParallelExperimentExecutor."""
-        with patch('kosmos.agents.research_director.ParallelExperimentExecutor') as mock:
+        with patch('kosmos.execution.parallel.ParallelExperimentExecutor') as mock:
             executor = MagicMock()
 
             # Mock execute_batch
@@ -175,7 +184,7 @@ class TestConcurrentResultAnalysis:
     @pytest.fixture
     def mock_async_client(self):
         """Mock AsyncClaudeClient for result analysis."""
-        with patch('kosmos.agents.research_director.AsyncClaudeClient') as mock:
+        with patch('kosmos.core.async_llm.AsyncClaudeClient') as mock:
             client = AsyncMock()
 
             async def mock_batch_generate(requests):
@@ -185,8 +194,9 @@ class TestConcurrentResultAnalysis:
                         id=req.id,
                         response='{"significance": "high", "hypothesis_supported": true, "key_finding": "Positive result", "next_steps": "Continue research"}',
                         success=True,
-                        tokens_used=75,
-                        latency_ms=150.0
+                        input_tokens=50,
+                        output_tokens=25,
+                        execution_time=0.15
                     )
                     for req in requests
                 ]
@@ -278,11 +288,8 @@ class TestConcurrentOperationsIntegration:
     @pytest.fixture
     def fully_mocked_director(self):
         """Create director with all dependencies mocked."""
-        with patch.multiple(
-            'kosmos.agents.research_director',
-            AsyncClaudeClient=MagicMock(),
-            ParallelExperimentExecutor=MagicMock()
-        ):
+        with patch('kosmos.core.async_llm.AsyncClaudeClient') as mock_async, \
+             patch('kosmos.execution.parallel.ParallelExperimentExecutor') as mock_parallel:
             config = {
                 "enable_concurrent_operations": True,
                 "max_parallel_hypotheses": 3,
@@ -299,7 +306,7 @@ class TestConcurrentOperationsIntegration:
             async def mock_batch(requests):
                 from kosmos.core.async_llm import BatchResponse
                 return [
-                    BatchResponse(id=r.id, response="test", success=True, tokens_used=10, latency_ms=50.0)
+                    BatchResponse(id=r.id, response="test", success=True, input_tokens=5, output_tokens=5, execution_time=0.05)
                     for r in requests
                 ]
             async_client.batch_generate = mock_batch
@@ -334,9 +341,9 @@ class TestConcurrentOperationsIntegration:
 
         assert len(evaluations) >= 0  # Mocked, may return empty
 
-        # 3. Design and execute experiments
-        director.research_plan.experiment_queue.add("exp_1")
-        director.research_plan.experiment_queue.add("exp_2")
+        # 3. Design and execute experiments (experiment_queue is a list)
+        director.research_plan.experiment_queue.append("exp_1")
+        director.research_plan.experiment_queue.append("exp_2")
 
         results = director.execute_experiments_batch(["exp_1", "exp_2"])
         assert len(results) == 2
@@ -351,16 +358,19 @@ class TestConcurrentOperationsIntegration:
 
     @pytest.mark.integration
     def test_fallback_to_sequential_when_concurrent_unavailable(self):
-        """Test graceful fallback to sequential mode."""
-        config = {
-            "enable_concurrent_operations": True,  # Requested
-        }
+        """Test graceful fallback to sequential mode when imports fail."""
+        # Mock AsyncClaudeClient to raise ImportError
+        with patch('kosmos.core.async_llm.AsyncClaudeClient', side_effect=ImportError("No async support")), \
+             patch('kosmos.execution.parallel.ParallelExperimentExecutor', side_effect=ImportError("No parallel support")):
+            config = {
+                "enable_concurrent_operations": True,  # Requested
+            }
 
-        # Don't provide async client or parallel executor
-        director = ResearchDirectorAgent(research_question="Test", config=config)
+            director = ResearchDirectorAgent(research_question="Test", config=config)
 
-        # Should fall back to sequential mode
-        assert director.enable_concurrent is False or director.async_llm_client is None
+            # Should fall back to sequential mode (clients are None due to import errors)
+            assert director.async_llm_client is None
+            assert director.parallel_executor is None
 
 
 class TestPerformanceMetrics:
@@ -379,7 +389,7 @@ class TestPerformanceMetrics:
             await asyncio.sleep(0.1)
             from kosmos.core.async_llm import BatchResponse
             return [
-                BatchResponse(id=r.id, response="result", success=True, tokens_used=50, latency_ms=100.0)
+                BatchResponse(id=r.id, response="result", success=True, input_tokens=30, output_tokens=20, execution_time=0.1)
                 for r in requests
             ]
 
@@ -417,8 +427,9 @@ class TestErrorHandlingInConcurrentMode:
                         id=req.id,
                         response='{"recommendation": "proceed"}',
                         success=True,
-                        tokens_used=50,
-                        latency_ms=100.0
+                        input_tokens=30,
+                        output_tokens=20,
+                        execution_time=0.1
                     ))
                 else:
                     results.append(BatchResponse(
