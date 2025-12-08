@@ -63,7 +63,29 @@ Kosmos implements a multi-agent orchestration pattern where parallel agents coor
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 Component Interaction Summary
+### 1.2 Data Flow Diagram
+
+```mermaid
+graph TD
+    User[User Input] -->|Research Question| Workflow[ResearchWorkflow]
+    Workflow -->|Context| PlanCreator[Plan Creator]
+    PlanCreator -->|Draft Plan| Novelty[Novelty Detector]
+    Novelty -->|Checked Plan| Reviewer[Plan Reviewer]
+    Reviewer -->|Approved Plan| Delegate[Delegation Manager]
+
+    Delegate -->|Task| Analyst[Data Analyst]
+    Delegate -->|Task| LitSearch[Literature Analyzer]
+
+    Analyst -->|Findings| Validator[ScholarEval]
+    LitSearch -->|Findings| Validator
+
+    Validator -->|Validated Findings| State[State Manager]
+    State -->|Compressed Context| Workflow
+
+    State -->|Final Artifacts| Report[Report Synthesizer]
+```
+
+### 1.3 Component Interaction Summary
 
 | Component | Receives From | Sends To | Primary Function |
 |-----------|--------------|----------|------------------|
@@ -75,48 +97,6 @@ Kosmos implements a multi-agent orchestration pattern where parallel agents coor
 | **Data Analyst** | Executor results | State Manager | Interpret experimental results |
 | **Literature Analyzer** | Orchestrator | State Manager | Search/synthesize papers |
 | **ScholarEval** | State Manager findings | State Manager | Validate discoveries |
-
-### 1.3 Data Flow
-
-```
-Research Question
-       │
-       ▼
-┌──────────────────┐
-│  Task Generation │ ← State Manager context
-│ (Plan Creator)   │
-└────────┬─────────┘
-         │ 10 tasks/cycle
-         ▼
-┌──────────────────┐
-│  Plan Review     │ ← 5-dimension scoring
-│ (Plan Reviewer)  │
-└────────┬─────────┘
-         │ Approved plan
-         ▼
-┌──────────────────┐
-│  Task Execution  │ ← Parallel execution
-│ (Delegation Mgr) │
-└────────┬─────────┘
-         │ Task results
-         ▼
-┌──────────────────┐
-│  Context         │ ← 20:1 compression
-│  Compression     │
-└────────┬─────────┘
-         │ Compressed summaries
-         ▼
-┌──────────────────┐
-│  ScholarEval     │ ← 8-dimension validation
-│  Validation      │
-└────────┬─────────┘
-         │ Validated findings
-         ▼
-┌──────────────────┐
-│  State Manager   │ → Next cycle context
-│  Update          │
-└──────────────────┘
-```
 
 ### 1.4 State Management Pattern
 
@@ -135,6 +115,7 @@ Kosmos uses a **4-layer hybrid architecture**:
 3. **Layer 3: Vector Store** (Optional, ChromaDB)
    - Semantic similarity search
    - Novelty detection
+   - File: `kosmos/knowledge/vector_db.py`
 
 4. **Layer 4: Citation Tracking** (Integrated)
    - Evidence chains
@@ -225,7 +206,7 @@ Task generation adapts based on cycle number:
 
 Research terminates when any of these conditions are met:
 
-1. **Iteration limit**: `iteration_count >= max_iterations` (default: 20)
+1. **Iteration limit**: `iteration_count >= max_iterations` (default: 10)
 2. **No testable hypotheses**: Empty hypothesis pool after generation attempt
 3. **Budget exceeded**: API costs exceed `RESEARCH_BUDGET_USD`
 4. **No novel tasks**: Novelty score drops below threshold for 3 consecutive cycles
@@ -408,7 +389,18 @@ ResultInterpretation(
 - `interpretation.hypothesis_supported` is not None (unless truly inconclusive)
 - Statistical measures are valid
 
-### 3.5 Plan Creator Agent
+### 3.5 Literature Analyzer Agent
+
+**File**: `kosmos/agents/literature_analyzer.py`
+
+| Property | Value |
+|----------|-------|
+| **Purpose** | Search and synthesize scientific papers |
+| **Entry Point** | `agent.analyze_paper(paper_id)` or `agent.search_literature(query)` |
+| **Expected Timing** | ~5-15 seconds per paper |
+| **APIs Used** | Semantic Scholar (unauthenticated works), PubMed, arXiv |
+
+### 3.6 Plan Creator Agent
 
 **File**: `kosmos/orchestration/plan_creator.py`
 
@@ -458,7 +450,7 @@ ResearchPlan(
 - At least 2 different task types
 - Exploration/exploitation ratio matches cycle
 
-### 3.6 Plan Reviewer Agent
+### 3.7 Plan Reviewer Agent
 
 **File**: `kosmos/orchestration/plan_reviewer.py`
 
@@ -483,7 +475,7 @@ ResearchPlan(
 - Minimum dimension score ≥ 5.0/10
 - Structural requirements met (≥3 data_analysis, ≥2 types)
 
-### 3.7 ScholarEval Validator
+### 3.8 ScholarEval Validator
 
 **File**: `kosmos/validation/scholar_eval.py`
 
@@ -494,7 +486,7 @@ ResearchPlan(
 | **Expected Timing** | ~5-10 seconds per finding |
 | **LLM Calls** | 1 per invocation |
 
-**8-Dimension Scoring**:
+**8-Dimension Scoring** (from code):
 | Dimension | Weight | Description |
 |-----------|--------|-------------|
 | Rigor | 25% | Scientific soundness of methods |
@@ -510,7 +502,7 @@ ResearchPlan(
 - Overall score ≥ 0.75 (75%)
 - Rigor score ≥ 0.70 (minimum quality bar)
 
-### 3.8 Context Compressor
+### 3.9 Context Compressor
 
 **File**: `kosmos/compression/compressor.py`
 
@@ -526,7 +518,7 @@ ResearchPlan(
 2. **Cycle-Level**: 10 task summaries → 1 cycle overview
 3. **Final Synthesis**: 20 cycle overviews → Research narrative
 
-### 3.9 Skill Loader
+### 3.10 Skill Loader
 
 **File**: `kosmos/agents/skill_loader.py`
 
@@ -684,21 +676,31 @@ async def run():
 
     result = await workflow.run(num_cycles=5, tasks_per_cycle=10)
     report = await workflow.generate_report()
-    print(report)
+
+    with open("FINAL_REPORT.md", "w") as f:
+        f.write(report)
+
+    print("Research complete. Report saved.")
 
 asyncio.run(run())
 ```
 
 **Using CLI**:
 ```bash
-# Basic run
-kosmos run --objective "Your research question" --max-iterations 5
+# Basic run (question is positional argument)
+kosmos run "Your research question" --domain biology
 
-# With trace logging
-kosmos run --trace --objective "Your research question"
+# With iteration limit
+kosmos run "Your research question" -d biology -i 5
 
-# With specific domain
-kosmos run --objective "Your research question" --domain biology
+# With budget limit
+kosmos run "Your research question" --domain materials --budget 50
+
+# Save results to file
+kosmos run "Your research question" -o results.json
+
+# Interactive mode (recommended for first time)
+kosmos run --interactive
 ```
 
 **Using Direct Agent Invocation (Workaround for CLI hang)**:
@@ -833,7 +835,7 @@ DEBUG_MODE=false
 DEBUG_LEVEL=0
 
 # Literature APIs (optional, increases rate limits)
-SEMANTIC_SCHOLAR_API_KEY=your-key-here
+SEMANTIC_SCHOLAR_API_KEY=your-key-here  # Works unauthenticated too
 PUBMED_API_KEY=your-key-here
 
 # Safety
@@ -904,7 +906,7 @@ CACHE_TTL=3600          # 1 hour cache
 
 **Diagnostic**:
 ```bash
-timeout 30 kosmos run "Test question" --domain biology --max-iterations 1
+timeout 30 kosmos run "Test question" --domain biology -i 1
 # If times out, confirms the hang issue
 ```
 
@@ -1060,7 +1062,7 @@ print(f"Budget: ${metrics.budget_limit:.2f}")
 # Enable profiling
 ENABLE_PROFILING=true
 PROFILING_MODE=standard
-kosmos run --trace --objective "Test"
+kosmos run "Test" --domain biology -i 1
 ```
 
 **Solutions**:
@@ -1079,27 +1081,27 @@ kosmos run --trace --objective "Test"
 
 | Paper Claim | Implementation Status | Gap Description |
 |-------------|----------------------|-----------------|
-| **20 research cycles** | ✅ Implemented | `max_iterations` config, default 10 |
-| **1,500 papers per run** | ⚠️ Partial | Literature search works, scale untested |
-| **42,000 lines of code** | ⚠️ Partial | Code generation works, not full sandbox |
-| **79.4% statement accuracy** | ❌ Not validated | Architecture implemented, needs testing |
-| **7 validated discoveries** | ❌ Not reproduced | System can discover, none validated |
-| **200 agent rollouts** | ⚠️ Partial | Parallelism configurable but limited |
-| **12-hour runtime constraint** | ⚠️ Partial | No explicit time limit enforcement |
-| **85.5% data analysis accuracy** | ❌ Not validated | Agent works, accuracy unmeasured |
-| **82.1% literature accuracy** | ❌ Not validated | Agent works, accuracy unmeasured |
-| **57.9% interpretation accuracy** | ❌ Not validated | Known weak point from paper |
+| **20 research cycles** | Implemented | `max_iterations` config, default 10 |
+| **1,500 papers per run** | Partial | Literature search works, scale untested |
+| **42,000 lines of code** | Partial | Code generation works, not full sandbox |
+| **79.4% statement accuracy** | Not validated | Architecture implemented, needs testing |
+| **7 validated discoveries** | Not reproduced | System can discover, none validated |
+| **200 agent rollouts** | Partial | Parallelism configurable but limited |
+| **12-hour runtime constraint** | Partial | No explicit time limit enforcement |
+| **85.5% data analysis accuracy** | Not validated | Agent works, accuracy unmeasured |
+| **82.1% literature accuracy** | Not validated | Agent works, accuracy unmeasured |
+| **57.9% interpretation accuracy** | Not validated | Known weak point from paper |
 
 ### 8.2 Implementation Gap Status
 
 | Gap | Problem | Solution Status |
 |-----|---------|-----------------|
-| **Gap 0** | Context compression (1500 papers + 42K lines won't fit) | ✅ Implemented: 20:1 hierarchical compression |
-| **Gap 1** | State Manager schema undefined | ✅ Implemented: 4-layer hybrid architecture |
-| **Gap 2** | Task generation strategy undefined | ✅ Implemented: Plan Creator + Reviewer |
-| **Gap 3** | Agent integration undefined | ⚠️ Partial: SkillLoader broken, 116 skills available |
-| **Gap 4** | R vs Python ambiguity | ✅ Resolved: Python-only with Docker sandbox |
-| **Gap 5** | Discovery validation undefined | ✅ Implemented: ScholarEval 8-dimension framework |
+| **Gap 0** | Context compression (1500 papers + 42K lines won't fit) | Implemented: 20:1 hierarchical compression |
+| **Gap 1** | State Manager schema undefined | Implemented: 4-layer hybrid architecture |
+| **Gap 2** | Task generation strategy undefined | Implemented: Plan Creator + Reviewer |
+| **Gap 3** | Agent integration undefined | Partial: SkillLoader broken, 116 skills available |
+| **Gap 4** | R vs Python ambiguity | Resolved: Python-only with Docker sandbox |
+| **Gap 5** | Discovery validation undefined | Implemented: ScholarEval 8-dimension framework |
 
 ### 8.3 Features Described in Paper Not Implemented
 
@@ -1149,6 +1151,7 @@ Before production use, conduct these validations:
 | Hypothesis Generator | `kosmos/agents/hypothesis_generator.py` |
 | Experiment Designer | `kosmos/agents/experiment_designer.py` |
 | Data Analyst | `kosmos/agents/data_analyst.py` |
+| Literature Analyzer | `kosmos/agents/literature_analyzer.py` |
 | Research Workflow | `kosmos/workflow/research_loop.py` |
 | Plan Creator | `kosmos/orchestration/plan_creator.py` |
 | Plan Reviewer | `kosmos/orchestration/plan_reviewer.py` |
@@ -1172,9 +1175,10 @@ pytest tests/unit/ -v
 kosmos doctor
 
 # Running
-kosmos run --objective "Your question" --domain biology
-kosmos run --trace --objective "Your question"  # Verbose
-kosmos info                                       # System info
+kosmos run "Your question" --domain biology
+kosmos run "Your question" -i 5              # With iteration limit
+kosmos run --interactive                      # Interactive mode
+kosmos info                                   # System info
 
 # Docker services
 docker compose --profile dev up -d    # Start all
@@ -1218,4 +1222,4 @@ CONVERGED
 
 **End of Runbook**
 
-*Generated for Kosmos v0.2.0-alpha | For questions, see [docs/E2E_DIAGNOSTIC.md](docs/E2E_DIAGNOSTIC.md)*
+*Generated for Kosmos v0.2.0-alpha | For questions, see [docs/E2E_DIAGNOSTIC.md](E2E_DIAGNOSTIC.md)*
