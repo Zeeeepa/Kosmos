@@ -450,6 +450,210 @@ class TestDataCleaner:
         assert (df_norm['a'] == df['a']).all()
 
 
+class TestDataLoaderH5ad:
+    """Test DataLoader h5ad file loading."""
+
+    @pytest.fixture
+    def sample_h5ad_file(self, tmp_path):
+        """Create a sample h5ad file for testing."""
+        try:
+            import anndata
+            import scipy.sparse as sp
+        except ImportError:
+            pytest.skip("anndata not installed")
+
+        # Create sample single-cell data
+        np.random.seed(42)
+        n_cells = 100
+        n_genes = 50
+
+        # Expression matrix (sparse)
+        X = sp.random(n_cells, n_genes, density=0.3, format='csr')
+
+        # Cell metadata
+        obs = pd.DataFrame({
+            'cell_type': np.random.choice(['T-cell', 'B-cell', 'Monocyte'], n_cells),
+            'sample_id': np.random.choice(['sample_1', 'sample_2'], n_cells),
+            'n_counts': np.random.randint(1000, 10000, n_cells)
+        }, index=[f'cell_{i}' for i in range(n_cells)])
+
+        # Gene metadata
+        var = pd.DataFrame({
+            'gene_symbol': [f'Gene{i}' for i in range(n_genes)],
+            'highly_variable': np.random.choice([True, False], n_genes)
+        }, index=[f'gene_{i}' for i in range(n_genes)])
+
+        # Create AnnData object
+        adata = anndata.AnnData(X=X, obs=obs, var=var)
+
+        # Save to file
+        h5ad_path = tmp_path / 'sample.h5ad'
+        adata.write_h5ad(h5ad_path)
+
+        return h5ad_path
+
+    def test_load_h5ad_to_dataframe(self, sample_h5ad_file):
+        """Test loading h5ad file as DataFrame."""
+        df = DataLoader.load_h5ad(sample_h5ad_file, to_dataframe=True)
+
+        # Check dimensions
+        assert len(df) == 100  # n_cells
+        assert 'gene_0' in df.columns  # Gene columns
+        assert 'obs_cell_type' in df.columns  # Metadata columns
+
+    def test_load_h5ad_as_anndata(self, sample_h5ad_file):
+        """Test loading h5ad file as AnnData object."""
+        try:
+            import anndata
+        except ImportError:
+            pytest.skip("anndata not installed")
+
+        adata = DataLoader.load_h5ad(sample_h5ad_file, to_dataframe=False)
+
+        assert isinstance(adata, anndata.AnnData)
+        assert adata.n_obs == 100
+        assert adata.n_vars == 50
+
+    def test_load_h5ad_with_obs_columns(self, sample_h5ad_file):
+        """Test loading h5ad with specific obs columns."""
+        df = DataLoader.load_h5ad(
+            sample_h5ad_file,
+            to_dataframe=True,
+            obs_columns=['cell_type']
+        )
+
+        assert 'obs_cell_type' in df.columns
+        assert 'obs_sample_id' not in df.columns
+
+    def test_load_h5ad_file_not_found(self):
+        """Test h5ad loading with non-existent file."""
+        with pytest.raises(FileNotFoundError):
+            DataLoader.load_h5ad('/nonexistent/file.h5ad')
+
+    def test_load_h5ad_import_error(self, monkeypatch):
+        """Test h5ad loading when anndata not installed."""
+        import sys
+
+        # Mock anndata not being installed
+        original_import = __builtins__.__import__ if hasattr(__builtins__, '__import__') else __import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == 'anndata':
+                raise ImportError("No module named 'anndata'")
+            return original_import(name, *args, **kwargs)
+
+        with pytest.raises(ImportError, match="anndata package required"):
+            # Temporarily hide anndata
+            anndata_module = sys.modules.get('anndata')
+            sys.modules['anndata'] = None
+            try:
+                # Force reimport
+                import importlib
+                from kosmos.execution import data_analysis
+                importlib.reload(data_analysis)
+                data_analysis.DataLoader.load_h5ad('/fake/path.h5ad')
+            finally:
+                if anndata_module:
+                    sys.modules['anndata'] = anndata_module
+                else:
+                    sys.modules.pop('anndata', None)
+
+
+class TestDataLoaderParquet:
+    """Test DataLoader parquet file loading."""
+
+    @pytest.fixture
+    def sample_parquet_file(self, tmp_path):
+        """Create a sample parquet file for testing."""
+        try:
+            import pyarrow.parquet as pq
+            import pyarrow as pa
+        except ImportError:
+            pytest.skip("pyarrow not installed")
+
+        # Create sample data
+        np.random.seed(42)
+        df = pd.DataFrame({
+            'id': range(1000),
+            'category': np.random.choice(['A', 'B', 'C'], 1000),
+            'value': np.random.randn(1000),
+            'timestamp': pd.date_range('2024-01-01', periods=1000, freq='h')
+        })
+
+        # Save to parquet
+        parquet_path = tmp_path / 'sample.parquet'
+        df.to_parquet(parquet_path)
+
+        return parquet_path
+
+    def test_load_parquet_basic(self, sample_parquet_file):
+        """Test basic parquet loading."""
+        df = DataLoader.load_parquet(sample_parquet_file)
+
+        assert len(df) == 1000
+        assert list(df.columns) == ['id', 'category', 'value', 'timestamp']
+
+    def test_load_parquet_with_columns(self, sample_parquet_file):
+        """Test parquet loading with specific columns."""
+        df = DataLoader.load_parquet(sample_parquet_file, columns=['id', 'value'])
+
+        assert len(df) == 1000
+        assert list(df.columns) == ['id', 'value']
+        assert 'category' not in df.columns
+
+    def test_load_parquet_file_not_found(self):
+        """Test parquet loading with non-existent file."""
+        with pytest.raises(FileNotFoundError):
+            DataLoader.load_parquet('/nonexistent/file.parquet')
+
+    def test_load_parquet_via_autodetect(self, sample_parquet_file):
+        """Test parquet loading through load_data auto-detection."""
+        df = DataLoader.load_data(sample_parquet_file)
+
+        assert len(df) == 1000
+        assert 'id' in df.columns
+
+
+class TestDataLoaderAutoDetect:
+    """Test DataLoader.load_data auto-detection for new formats."""
+
+    def test_autodetect_h5ad(self, tmp_path):
+        """Test auto-detection of h5ad files."""
+        try:
+            import anndata
+        except ImportError:
+            pytest.skip("anndata not installed")
+
+        # Create minimal h5ad file
+        np.random.seed(42)
+        adata = anndata.AnnData(X=np.random.randn(10, 5))
+        h5ad_path = tmp_path / 'test.h5ad'
+        adata.write_h5ad(h5ad_path)
+
+        # Load via auto-detection
+        df = DataLoader.load_data(h5ad_path)
+
+        assert len(df) == 10
+
+    def test_autodetect_parquet(self, tmp_path):
+        """Test auto-detection of parquet files."""
+        try:
+            import pyarrow
+        except ImportError:
+            pytest.skip("pyarrow not installed")
+
+        # Create minimal parquet file
+        df_orig = pd.DataFrame({'a': [1, 2, 3], 'b': [4, 5, 6]})
+        parquet_path = tmp_path / 'test.parquet'
+        df_orig.to_parquet(parquet_path)
+
+        # Load via auto-detection
+        df = DataLoader.load_data(parquet_path)
+
+        assert len(df) == 3
+        assert list(df.columns) == ['a', 'b']
+
+
 class TestDataAnalyzerIntegration:
     """Integration tests for complete analysis workflows."""
 

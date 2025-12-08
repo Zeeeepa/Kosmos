@@ -881,6 +881,143 @@ class DataLoader:
         return df
 
     @staticmethod
+    def load_h5ad(
+        file_path: Union[str, Path],
+        to_dataframe: bool = True,
+        obs_columns: Optional[List[str]] = None,
+        var_columns: Optional[List[str]] = None,
+        **kwargs
+    ) -> Union[pd.DataFrame, Any]:
+        """
+        Load h5ad file (single-cell RNA-seq data format).
+
+        h5ad is the standard format for single-cell RNA-seq data, used by
+        scanpy and other single-cell analysis tools. It stores gene expression
+        matrices along with cell metadata (obs) and gene metadata (var).
+
+        Args:
+            file_path: Path to h5ad file
+            to_dataframe: If True, return expression matrix as DataFrame.
+                         If False, return the full AnnData object.
+            obs_columns: List of cell metadata columns to include (default: all)
+            var_columns: List of gene metadata columns to include (default: all)
+            **kwargs: Additional arguments to pass to anndata.read_h5ad()
+
+        Returns:
+            If to_dataframe=True: DataFrame with gene expression data
+            If to_dataframe=False: AnnData object with full structure
+
+        Example:
+            >>> df = DataLoader.load_h5ad('single_cell_data.h5ad')
+            >>> print(f"Loaded {df.shape[0]} cells x {df.shape[1]} genes")
+
+        Note:
+            Requires anndata package: pip install anndata
+            For full analysis capabilities, also install scanpy: pip install scanpy
+        """
+        try:
+            import anndata
+        except ImportError:
+            raise ImportError(
+                "anndata package required for h5ad files. "
+                "Install with: pip install anndata "
+                "or: pip install kosmos-ai-scientist[science]"
+            )
+
+        logger.info(f"Loading h5ad from {file_path}")
+        file_path = Path(file_path)
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"h5ad file not found: {file_path}")
+
+        # Load AnnData object
+        adata = anndata.read_h5ad(file_path, **kwargs)
+        logger.info(f"Loaded AnnData: {adata.n_obs} cells x {adata.n_vars} genes")
+
+        if not to_dataframe:
+            return adata
+
+        # Convert to DataFrame
+        # Expression matrix (cells x genes)
+        if hasattr(adata.X, 'toarray'):
+            # Sparse matrix - convert to dense
+            expr_matrix = adata.X.toarray()
+        else:
+            expr_matrix = adata.X
+
+        df = pd.DataFrame(
+            expr_matrix,
+            index=adata.obs_names,
+            columns=adata.var_names
+        )
+
+        # Optionally add cell metadata columns
+        if obs_columns is not None:
+            for col in obs_columns:
+                if col in adata.obs.columns:
+                    df[f"obs_{col}"] = adata.obs[col].values
+        elif adata.obs.shape[1] > 0:
+            # Add all obs columns with prefix
+            for col in adata.obs.columns:
+                df[f"obs_{col}"] = adata.obs[col].values
+
+        logger.info(f"Converted to DataFrame: {df.shape[0]} rows x {df.shape[1]} columns")
+        return df
+
+    @staticmethod
+    def load_parquet(
+        file_path: Union[str, Path],
+        columns: Optional[List[str]] = None,
+        **kwargs
+    ) -> pd.DataFrame:
+        """
+        Load Parquet file (columnar data format).
+
+        Parquet is an efficient columnar storage format commonly used for
+        large-scale analytics data. It provides excellent compression and
+        fast column-wise access.
+
+        Args:
+            file_path: Path to Parquet file
+            columns: Specific columns to load (default: all columns)
+            **kwargs: Additional arguments to pass to pandas.read_parquet()
+
+        Returns:
+            DataFrame with loaded data
+
+        Example:
+            >>> df = DataLoader.load_parquet('analytics_data.parquet')
+            >>> df_subset = DataLoader.load_parquet('data.parquet', columns=['col1', 'col2'])
+
+        Note:
+            Requires pyarrow package: pip install pyarrow
+            or: pip install kosmos-ai-scientist[science]
+        """
+        try:
+            import pyarrow.parquet as pq
+        except ImportError:
+            raise ImportError(
+                "pyarrow package required for Parquet files. "
+                "Install with: pip install pyarrow "
+                "or: pip install kosmos-ai-scientist[science]"
+            )
+
+        logger.info(f"Loading Parquet from {file_path}")
+        file_path = Path(file_path)
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"Parquet file not found: {file_path}")
+
+        # Read parquet file
+        if columns is not None:
+            df = pd.read_parquet(file_path, columns=columns, **kwargs)
+        else:
+            df = pd.read_parquet(file_path, **kwargs)
+
+        logger.info(f"Loaded {len(df)} rows, {len(df.columns)} columns")
+        return df
+
+    @staticmethod
     def load_data(file_path: Union[str, Path], **kwargs) -> pd.DataFrame:
         """
         Auto-detect file type and load data.
@@ -908,9 +1045,13 @@ class DataLoader:
             return DataLoader.load_excel(file_path, **kwargs)
         elif suffix == '.json':
             return DataLoader.load_json(file_path, **kwargs)
+        elif suffix == '.h5ad':
+            return DataLoader.load_h5ad(file_path, **kwargs)
+        elif suffix == '.parquet':
+            return DataLoader.load_parquet(file_path, **kwargs)
         else:
             raise ValueError(f"Unsupported file type: {suffix}. "
-                           f"Supported: .csv, .xlsx, .xls, .json")
+                           f"Supported: .csv, .xlsx, .xls, .json, .h5ad, .parquet")
 
 
 class DataCleaner:

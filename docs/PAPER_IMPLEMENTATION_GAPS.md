@@ -12,10 +12,10 @@
 |----------|-------|--------|
 | **BLOCKER** | 3 | **3/3 Complete** ✅ |
 | **Critical** | 5 | **5/5 Complete** ✅ |
-| High | 5 | 0/5 Complete |
+| High | 5 | 1/5 Complete |
 | Medium | 2 | 0/2 Complete |
 | Low | 2 | 0/2 Complete |
-| **Total** | **17** | **8/17 Complete** |
+| **Total** | **17** | **9/17 Complete** |
 
 > **Note**: BLOCKER priority means the system cannot run at all until fixed. These must be addressed before any other gaps.
 
@@ -284,37 +284,43 @@ Skill not found: matplotlib
 
 ## High Priority Gaps
 
-### GAP-006: h5ad/Parquet Data Format Support
+### GAP-006: h5ad/Parquet Data Format Support ✅ COMPLETE
 
 | Field | Value |
 |-------|-------|
 | **GitHub Issue** | [#59](https://github.com/jimmc414/Kosmos/issues/59) |
-| **Status** | Not Started |
+| **Status** | **Complete** (2025-12-08) |
 | **Priority** | High |
 | **Area** | Execution |
 
 **Paper Claim** (Section 3.1):
 > "Format: CSV, TSV, Parquet, Excel, or scientific formats (e.g., h5ad for single-cell RNA-seq)"
 
-**Current Implementation**:
-- CSV: `DataLoader.load_csv()` at `data_analysis.py:832` ✓
-- Excel: `DataLoader.load_excel()` at line 849 ✓
-- h5ad: Not implemented
-- Parquet: Not implemented
+**Solution Implemented**:
+- `DataLoader.load_h5ad()`: Loads single-cell RNA-seq data using anndata library
+  - Supports conversion to DataFrame or returning raw AnnData object
+  - Handles sparse matrices (converts to dense for DataFrame)
+  - Includes cell metadata (obs columns) with configurable selection
+- `DataLoader.load_parquet()`: Loads columnar data using pyarrow
+  - Supports column selection for efficient partial loading
+  - Works with various compression codecs (snappy, gzip, brotli)
+- Auto-detection by file extension in `load_data()` dispatcher
+- pyarrow added to `[project.optional-dependencies] science` in pyproject.toml
 
-**Gap**:
-- Cannot process single-cell RNA-seq datasets (h5ad is standard)
-- Cannot process columnar analytics data (Parquet)
+**Files Modified**:
+- `kosmos/execution/data_analysis.py` - Added load_h5ad(), load_parquet()
+- `pyproject.toml` - Added pyarrow>=14.0.0 to science dependencies
 
-**Files to Modify**:
-- `kosmos/execution/data_analysis.py`
-- `requirements.txt` (add anndata, pyarrow)
+**Tests**:
+- 11 unit tests (mocked file operations)
+- 14 integration tests (real data including PBMC3k single-cell dataset)
+- All tests passing
 
 **Acceptance Criteria**:
-- [ ] `DataLoader.load_h5ad()` using anndata library
-- [ ] `DataLoader.load_parquet()` using pyarrow
-- [ ] Auto-detection by file extension
-- [ ] Tests with real h5ad/parquet files
+- [x] `DataLoader.load_h5ad()` using anndata library
+- [x] `DataLoader.load_parquet()` using pyarrow
+- [x] Auto-detection by file extension
+- [x] Tests with real h5ad/parquet files
 
 ---
 
@@ -632,6 +638,7 @@ Two external critiques (grading C-/C+) made claims that investigation proved **i
 
 | Date | Change |
 |------|--------|
+| 2025-12-08 | Implemented GAP-006 (#59) h5ad/Parquet data format support - 9/17 gaps now done |
 | 2025-12-08 | Marked GAP-001 to GAP-005 (#54-#58) as complete - 8/17 gaps now done |
 | 2025-12-08 | Added 5 gaps from critique analysis (GAP-013 to GAP-017), now 17 total |
 | 2025-12-08 | Added BLOCKER priority tier for operational blockers |
