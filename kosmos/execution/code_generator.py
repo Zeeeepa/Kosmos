@@ -92,9 +92,9 @@ class TTestComparisonCodeTemplate(CodeTemplate):
             "from scipy import stats",
             "from kosmos.execution.data_analysis import DataAnalyzer",
             "",
-            "# Load data",
+            "# Load data (data_path variable is provided by executor)",
             f"# Expected format: CSV with columns '{group_var}' and '{measure_var}'",
-            "df = pd.read_csv('data.csv')",
+            "df = pd.read_csv(data_path)",
             "",
             "# Clean data",
             "df = df.dropna()",
@@ -167,9 +167,9 @@ class CorrelationAnalysisCodeTemplate(CodeTemplate):
             "from scipy import stats",
             "from kosmos.execution.data_analysis import DataAnalyzer",
             "",
-            "# Load data",
+            "# Load data (data_path variable is provided by executor)",
             f"# Expected format: CSV with columns '{x_var}' and '{y_var}'",
-            "df = pd.read_csv('data.csv')",
+            "df = pd.read_csv(data_path)",
             "",
             "# Clean data",
             "df = df.dropna()",
@@ -229,9 +229,9 @@ class LogLogScalingCodeTemplate(CodeTemplate):
             "from scipy import stats",
             "from kosmos.execution.data_analysis import DataAnalyzer, DataCleaner",
             "",
-            "# Load data",
+            "# Load data (data_path variable is provided by executor)",
             f"# Expected format: CSV with columns '{x_var}' and '{y_var}'",
-            "df = pd.read_csv('data.csv')",
+            "df = pd.read_csv(data_path)",
             "",
             "# Clean data - remove NaN and non-positive values (required for log-log)",
             "df = DataCleaner.filter_positive(df, ['" + x_var + "', '" + y_var + "'])",
@@ -280,8 +280,8 @@ class MLExperimentCodeTemplate(CodeTemplate):
             "from sklearn.linear_model import LogisticRegression",
             "from kosmos.execution.ml_experiments import MLAnalyzer",
             "",
-            "# Load data",
-            "df = pd.read_csv('data.csv')",
+            "# Load data (data_path variable is provided by executor)",
+            "df = pd.read_csv(data_path)",
             "",
             "# Prepare features and target",
             "# Assuming last column is target",
@@ -464,10 +464,13 @@ class ExperimentCodeGenerator:
 {tests_text}
 
 Generate complete, executable Python code that:
-1. Loads data from 'data.csv'
+1. Loads data from the `data_path` variable (already defined by executor)
 2. Implements each protocol step
 3. Performs the specified statistical tests
 4. Returns results in a dictionary
+
+IMPORTANT: Use `data_path` variable for loading data, e.g., `pd.read_csv(data_path)`
+Do NOT hardcode 'data.csv' - use the data_path variable instead.
 
 Use these libraries: pandas, numpy, scipy.stats
 Use kosmos.execution.data_analysis.DataAnalyzer for statistical tests
@@ -533,8 +536,8 @@ Return the enhanced Python code only."""
             "import pandas as pd",
             "import numpy as np",
             "",
-            "# Load data",
-            "df = pd.read_csv('data.csv')",
+            "# Load data (data_path variable is provided by executor)",
+            "df = pd.read_csv(data_path)",
             "",
             "# Process data",
             "df = df.dropna()",

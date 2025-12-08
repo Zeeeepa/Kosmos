@@ -29,6 +29,7 @@ from kosmos.models.hypothesis import Hypothesis, HypothesisStatus
 from kosmos.world_model import get_world_model, Entity, Relationship
 from kosmos.db import get_session
 from kosmos.db.operations import get_hypothesis, get_experiment, get_result
+from kosmos.agents.skill_loader import SkillLoader
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,9 @@ logger = logging.getLogger(__name__)
 MAX_CONSECUTIVE_ERRORS = 3  # Halt after this many failures in a row
 ERROR_BACKOFF_SECONDS = [2, 4, 8]  # Exponential backoff delays
 ERROR_RECOVERY_LOG_PREFIX = "[ERROR-RECOVERY]"
+
+# Infinite loop prevention (Issue #51)
+MAX_ACTIONS_PER_ITERATION = 50  # Force convergence if exceeded
 
 
 class ResearchDirectorAgent(BaseAgent):
@@ -77,6 +81,13 @@ class ResearchDirectorAgent(BaseAgent):
 
         self.research_question = research_question
         self.domain = domain
+
+        # Domain validation and logging (Issue #51)
+        self._validate_domain()
+
+        # Load domain-specific skills (Issue #51 - skills integration)
+        self.skills: Optional[str] = None
+        self._load_skills()
 
         # Configuration
         self.max_iterations = self.config.get("max_iterations", 10)
@@ -202,6 +213,59 @@ class ResearchDirectorAgent(BaseAgent):
             f"ResearchDirector initialized for question: '{research_question}' "
             f"(max_iterations={self.max_iterations}, concurrent={self.enable_concurrent})"
         )
+
+    def _validate_domain(self):
+        """Validate domain against enabled domains (Issue #51)."""
+        # Default enabled domains if not configured
+        default_domains = ["biology", "physics", "chemistry", "neuroscience"]
+        enabled_domains = self.config.get("enabled_domains", default_domains)
+
+        if self.domain:
+            if self.domain.lower() not in [d.lower() for d in enabled_domains]:
+                logger.warning(
+                    f"[DOMAIN] Domain '{self.domain}' not in enabled domains: {enabled_domains}. "
+                    "Research will proceed but domain-specific features may be limited."
+                )
+            else:
+                logger.info(f"[DOMAIN] Research domain: {self.domain}")
+        else:
+            logger.info("[DOMAIN] No domain specified - using general research mode")
+
+    def _load_skills(self):
+        """Load domain-specific skills for enhanced prompts (Issue #51)."""
+        try:
+            skill_loader = SkillLoader()
+
+            # Load skills based on domain or default research skills
+            if self.domain:
+                self.skills = skill_loader.load_skills_for_task(
+                    task_type="research",
+                    domain=self.domain,
+                    include_examples=False,
+                    include_common=True
+                )
+                if self.skills:
+                    logger.info(f"Loaded skills for domain '{self.domain}'")
+                else:
+                    logger.debug(f"No specific skills found for domain '{self.domain}'")
+            else:
+                # Load common research skills
+                self.skills = skill_loader.load_skills_for_task(
+                    task_type="research",
+                    include_examples=False,
+                    include_common=True
+                )
+                if self.skills:
+                    logger.info("Loaded common research skills")
+        except Exception as e:
+            logger.warning(f"Failed to load skills: {e}. Continuing without skill injection.")
+            self.skills = None
+
+    def get_skills_context(self) -> str:
+        """Get skills context for prompt injection."""
+        if self.skills:
+            return f"\n{self.skills}\n"
+        return ""
 
     # ========================================================================
     # LIFECYCLE HOOKS
@@ -928,6 +992,7 @@ class ResearchDirectorAgent(BaseAgent):
             "action": action,
             "research_question": self.research_question,
             "domain": self.domain,
+            "skills": self.get_skills_context(),  # Issue #51 - inject skills
             "context": context or {}
         }
 
@@ -957,6 +1022,8 @@ class ResearchDirectorAgent(BaseAgent):
         content = {
             "action": "design_experiment",
             "hypothesis_id": hypothesis_id,
+            "domain": self.domain,
+            "skills": self.get_skills_context(),  # Issue #51 - inject skills
             "context": context or {}
         }
 
@@ -1523,16 +1590,32 @@ Provide a structured, actionable plan in 2-3 paragraphs.
 
         current_state = self.workflow.current_state
 
-        # Enhanced debug logging
+        # Action counter for infinite loop prevention (Issue #51)
+        if not hasattr(self, '_actions_this_iteration'):
+            self._actions_this_iteration = 0
+        self._actions_this_iteration += 1
+
+        if self._actions_this_iteration > MAX_ACTIONS_PER_ITERATION:
+            logger.error(
+                "[LOOP-GUARD] Exceeded %d actions in iteration %d - forcing convergence",
+                MAX_ACTIONS_PER_ITERATION,
+                self.research_plan.iteration_count
+            )
+            return NextAction.CONVERGE
+
+        # Enhanced debug logging with comprehensive state info
         logger.debug(
-            "[DECISION] decide_next_action: state=%s, iteration=%d/%d, "
-            "hypotheses=%d, untested=%d, experiments_queued=%d",
-            current_state.value,
+            "[STATE] Iteration=%d/%d, State=%s, Hypotheses=%d (untested=%d), "
+            "Queue=%d, Results=%d, Actions=%d/%d",
             self.research_plan.iteration_count,
             self.research_plan.max_iterations,
+            current_state.value,
             len(self.research_plan.hypothesis_pool),
             len(self.research_plan.get_untested_hypotheses()),
-            len(self.research_plan.experiment_queue)
+            len(self.research_plan.experiment_queue),
+            len(self.research_plan.results),
+            self._actions_this_iteration,
+            MAX_ACTIONS_PER_ITERATION
         )
 
         # Check convergence first
@@ -1549,19 +1632,45 @@ Provide a structured, actionable plan in 2-3 paragraphs.
             untested = self.research_plan.get_untested_hypotheses()
             if untested:
                 return NextAction.DESIGN_EXPERIMENT
+            elif self.research_plan.experiment_queue:
+                # Bug A fix (Issue #51): Experiments designed, move to execution
+                logger.debug("[DECISION] DESIGNING: No untested hypotheses but queue has %d experiments - executing",
+                            len(self.research_plan.experiment_queue))
+                return NextAction.EXECUTE_EXPERIMENT
+            elif self.research_plan.results:
+                # Have results to analyze
+                logger.debug("[DECISION] DESIGNING: No untested, no queue, but have %d results - analyzing",
+                            len(self.research_plan.results))
+                return NextAction.ANALYZE_RESULT
             else:
-                # All hypotheses tested, check convergence or generate more
+                # No hypotheses AND no experiments AND no results - converge
+                logger.debug("[DECISION] DESIGNING: No hypotheses, queue, or results - converging")
                 return NextAction.CONVERGE
 
         elif current_state == WorkflowState.EXECUTING:
             # Execute queued experiments
             if self.research_plan.experiment_queue:
                 return NextAction.EXECUTE_EXPERIMENT
-            else:
+            elif self.research_plan.results:
+                # Bug D fix (Issue #51): Have results to analyze
+                logger.debug("[DECISION] EXECUTING: Queue empty but have %d results - analyzing",
+                            len(self.research_plan.results))
                 return NextAction.ANALYZE_RESULT
+            else:
+                # Bug D fix (Issue #51): No queue AND no results - something went wrong
+                logger.warning("[DECISION] EXECUTING: No queue and no results - refining to recover")
+                return NextAction.REFINE_HYPOTHESIS
 
         elif current_state == WorkflowState.ANALYZING:
-            # Analyze recent results
+            # Bug B fix (Issue #51): Guard against empty results
+            if not self.research_plan.results:
+                logger.warning("[DECISION] ANALYZING: No results to analyze")
+                if self.research_plan.experiment_queue:
+                    logger.debug("[DECISION] ANALYZING: Falling back to execute queued experiments")
+                    return NextAction.EXECUTE_EXPERIMENT
+                else:
+                    logger.debug("[DECISION] ANALYZING: No results or queue - refining")
+                    return NextAction.REFINE_HYPOTHESIS
             return NextAction.ANALYZE_RESULT
 
         elif current_state == WorkflowState.REFINING:
@@ -1590,7 +1699,15 @@ Provide a structured, actionable plan in 2-3 paragraphs.
         Args:
             action: Action to execute
         """
-        logger.info("[ACTION] Executing: %s", action.value)
+        # Enhanced execution logging (Issue #51)
+        action_count = getattr(self, '_actions_this_iteration', 0)
+        logger.info(
+            "[EXECUTE] Action=%s, Iteration=%d, ActionCount=%d/%d",
+            action.value,
+            self.research_plan.iteration_count,
+            action_count,
+            MAX_ACTIONS_PER_ITERATION
+        )
 
         tracker = get_stage_tracker()
         with tracker.track(f"ACTION_{action.value}", action=action.value):
@@ -1752,15 +1869,15 @@ Provide a structured, actionable plan in 2-3 paragraphs.
             # This marks the completion of one full research cycle
             with self._research_plan_context():
                 self.research_plan.increment_iteration()
-            logger.info(f"Completed iteration {self.research_plan.iteration_count}")
+            # Reset action counter for new iteration (Issue #51)
+            self._actions_this_iteration = 0
+            logger.info(f"[ITERATION] Completed iteration {self.research_plan.iteration_count}")
 
         elif action == NextAction.CONVERGE:
+            # Bug C fix (Issue #51): Don't increment iteration for convergence check
+            # Convergence is a check, not a new research cycle
+            logger.info(f"[CONVERGE] Checking convergence at iteration {self.research_plan.iteration_count}")
             self._send_to_convergence_detector()
-
-            # Increment iteration before checking convergence
-            with self._research_plan_context():
-                self.research_plan.increment_iteration()
-            logger.info(f"Checking convergence at iteration {self.research_plan.iteration_count}")
 
         elif action == NextAction.PAUSE:
             self.pause()

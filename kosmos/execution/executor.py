@@ -321,17 +321,25 @@ class CodeExecutor:
         Execute code with data file path provided.
 
         Args:
-            code: Python code to execute
+            code: Python code to execute (expects `data_path` variable)
             data_path: Path to data file (made available as variable)
             retry_on_error: If True, retry on errors
 
         Returns:
             ExecutionResult
+
+        Note:
+            The data_path variable is prepended to code and also provided
+            in local_vars for templates that use `pd.read_csv(data_path)`.
         """
-        # Inject data path into code
+        # Prepend data_path assignment so templates can use it (Issue #51)
+        # This ensures data_path is defined even if templates use it directly
+        augmented_code = f"# Data path injected by executor\ndata_path = {repr(data_path)}\n\n{code}"
+
+        # Also inject as local variable for safety
         local_vars = {'data_path': data_path}
 
-        return self.execute(code, local_vars, retry_on_error)
+        return self.execute(augmented_code, local_vars, retry_on_error)
 
 
 class CodeValidator:
