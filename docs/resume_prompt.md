@@ -28,7 +28,7 @@ You are resuming work on the Kosmos project after a context compaction. The prev
 
 | File | Changes |
 |------|---------|
-| `docs/PAPER_IMPLEMENTATION_GAPS.md` | Marked #66-68 complete |
+| `docs/PAPER_IMPLEMENTATION_GAPS.md` | Marked #54-58, #66-68 complete (8/17 total) |
 | `kosmos/config.py` | `max_runtime_hours`, `max_concurrent_experiments=10` |
 | `kosmos/core/rollout_tracker.py` | **NEW** - RolloutTracker class |
 | `kosmos/agents/research_director.py` | Runtime tracking, rollout tracking |
