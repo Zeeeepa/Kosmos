@@ -35,7 +35,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 from scipy import stats
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from kosmos.domains.biology.apis import (
     GWASCatalogClient,
@@ -129,8 +129,7 @@ class GenomicsResult(BaseModel):
         description="Whether eQTL/pQTL effects agree with GWAS direction"
     )
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class MechanismRanking(BaseModel):
@@ -146,8 +145,7 @@ class MechanismRanking(BaseModel):
     )
     rank: int
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class GenomicsAnalyzer:

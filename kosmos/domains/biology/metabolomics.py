@@ -32,7 +32,7 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 from scipy import stats
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from kosmos.domains.biology.apis import KEGGClient
 from kosmos.utils.compat import model_to_dict
@@ -72,8 +72,7 @@ class MetabolomicsResult(BaseModel):
     significant: bool = Field(default=False)
     pathways: List[str] = Field(default_factory=list)
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class PathwayPattern(BaseModel):
@@ -89,8 +88,7 @@ class PathwayPattern(BaseModel):
     pattern_description: str
     pattern_p_value: Optional[float] = None
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class PathwayComparison(BaseModel):
@@ -104,8 +102,7 @@ class PathwayComparison(BaseModel):
     pattern: str  # e.g., "salvage_decreased_synthesis_increased"
     significant: bool
 
-    class Config:
-        use_enum_values = True
+    model_config = ConfigDict(use_enum_values=True)
 
 
 class MetabolomicsAnalyzer:

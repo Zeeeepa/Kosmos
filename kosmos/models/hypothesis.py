@@ -6,7 +6,7 @@ Complements the SQLAlchemy Hypothesis model in kosmos.db.models.
 """
 
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, validator, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime
 from enum import Enum
 
