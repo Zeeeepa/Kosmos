@@ -351,7 +351,7 @@ The system is suitable for experimentation and further development. Before produ
 
 ### Operations
 - [GETTING_STARTED.md](GETTING_STARTED.md) - Detailed usage examples
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
+- [CONTRIBUTING.md](archive/CONTRIBUTING.md) - Development guidelines (archived)
 - [CHANGELOG.md](CHANGELOG.md) - Version history
 
 ## Paper Gap Solutions
