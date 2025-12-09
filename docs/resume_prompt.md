@@ -2,9 +2,23 @@
 
 ## Context
 
-You are resuming work on the Kosmos project after a context compaction. The previous sessions implemented **15 paper implementation gaps** (3 BLOCKER + 5 Critical + 5 High + 2 Medium).
+You are resuming work on the Kosmos project after a context compaction. The previous sessions implemented **15 paper implementation gaps** (3 BLOCKER + 5 Critical + 5 High + 2 Medium). The most recent session fixed test suite issues and added real data validation tests.
 
 ## What Was Done
+
+### Last Session (Test Suite Maintenance)
+
+Fixed test failures and added real data tests:
+
+| File | Fix |
+|------|-----|
+| `kosmos/execution/statistics.py` | numpy.bool_ → Python bool conversion |
+| `tests/unit/execution/test_statistics.py` | Cohen's d boundary, Bonferroni expected values, normality checks |
+| `tests/unit/execution/test_sandbox.py` | Docker exception type mocking |
+| `tests/unit/execution/test_result_collector.py` | Pydantic V2 fixtures, db mocking |
+| `tests/integration/execution/test_statistics_real_data.py` | **NEW** - 15 real data tests |
+
+Also created GitHub issue #72 for API response streaming.
 
 ### All Fixed Issues
 
@@ -30,13 +44,9 @@ You are resuming work on the Kosmos project after a context compaction. The prev
 
 | File | Changes |
 |------|---------|
-| `kosmos/execution/provenance.py` | **NEW** - CodeProvenance, CellLineMapping (~280 lines) |
-| `kosmos/execution/__init__.py` | Exported provenance classes |
-| `kosmos/world_model/artifacts.py` | Added code_provenance field to Finding |
-| `kosmos/execution/notebook_generator.py` | Added cell_line_mappings to NotebookMetadata |
-| `kosmos/workflow/research_loop.py` | Updated generate_report() with hyperlinks |
-| `tests/unit/execution/test_provenance.py` | **NEW** - 47 unit tests |
-| `tests/integration/execution/test_code_provenance_pipeline.py` | **NEW** - 24 integration tests |
+| `kosmos/execution/provenance.py` | CodeProvenance, CellLineMapping (~280 lines) |
+| `kosmos/execution/statistics.py` | Fixed numpy.bool_ issue |
+| `tests/integration/execution/test_statistics_real_data.py` | **NEW** - 15 real data tests |
 
 ## Remaining Work (2 gaps)
 
@@ -58,40 +68,30 @@ You are resuming work on the Kosmos project after a context compaction. The prev
 
 - `docs/CHECKPOINT.md` - Full session summary
 - `docs/PAPER_IMPLEMENTATION_GAPS.md` - 17 tracked gaps (15 complete)
-- `/home/jim/.claude/plans/groovy-questing-allen.md` - Code line provenance plan
-- GitHub Issues #54-#70 - Detailed tracking
+- GitHub Issues #54-#72 - Detailed tracking
 
 ## Quick Verification Commands
 
 ```bash
-# Verify code provenance
-python -c "
-from kosmos.execution import CodeProvenance, CellLineMapping, create_provenance_from_notebook
-from kosmos.world_model.artifacts import Finding
+# Verify test fixes
+python -m pytest tests/unit/execution/ -v --tb=short
 
-# Test CodeProvenance
-provenance = CodeProvenance(
-    notebook_path='artifacts/cycle_1/notebooks/task_5_correlation.ipynb',
-    cell_index=3,
-    start_line=1,
-    end_line=15,
-    code_snippet='import pandas as pd\ndf = pd.read_csv(\"data.csv\")',
-    hypothesis_id='hyp_001',
-)
-print(f'Hyperlink: {provenance.to_hyperlink()}')
-print(f'Citation: {provenance.get_citation_string()}')
-print(f'Markdown: {provenance.to_markdown_link()}')
+# Run real data statistical tests
+python -m pytest tests/integration/execution/test_statistics_real_data.py -v
+
+# Check imports
+python -c "
+from kosmos.execution import CodeProvenance, CellLineMapping
+from kosmos.execution.statistics import StatisticalValidator
+from kosmos.validation.null_model import NullModelValidator
+from kosmos.validation.failure_detector import FailureDetector
 print('All imports successful')
 "
-
-# Run tests
-python -m pytest tests/unit/execution/test_provenance.py -v --tb=short
-python -m pytest tests/integration/execution/test_code_provenance_pipeline.py -v --tb=short
 ```
 
 ## Resume Command
 
-Start by reading the checkpoint:
+Start by reading the checkpoint and checking issue status:
 ```
 Read docs/CHECKPOINT.md and docs/PAPER_IMPLEMENTATION_GAPS.md, then continue with the next item: #64 - Multi-Run Convergence Framework
 ```
@@ -108,6 +108,16 @@ Read docs/CHECKPOINT.md and docs/PAPER_IMPLEMENTATION_GAPS.md, then continue wit
 | Medium | 2/2 complete ✅ |
 | Low | 0/2 remaining |
 
+## Test Summary
+
+**Total Tests: 3451**
+
+Key test files for recent work:
+- `tests/unit/execution/test_statistics.py` - 37 tests
+- `tests/unit/execution/test_sandbox.py` - 22 tests
+- `tests/unit/execution/test_result_collector.py` - 26 tests
+- `tests/integration/execution/test_statistics_real_data.py` - 15 tests
+
 ## Next Step
 
 Continue with **#64 - Multi-Run Convergence Framework**:
@@ -115,3 +125,24 @@ Continue with **#64 - Multi-Run Convergence Framework**:
 - Calculate convergence metrics across runs
 - Report showing findings that appeared in N/M runs
 - Non-deterministic validation through replication
+
+### Paper Reference (Section 5)
+> "Each research question was run five times with different random seeds"
+> "Statistical tests were applied to compare the AI scientist's conclusions to ground truth"
+
+### Implementation Approach
+
+1. Create `kosmos/validation/convergence.py` with:
+   - `EnsembleRunner` class to manage multiple runs
+   - `ConvergenceMetrics` dataclass for cross-run statistics
+   - `run_ensemble(n_runs, objective, seeds)` method
+
+2. Track per-finding:
+   - Appearance count across runs (N/M)
+   - Statistical consistency (effect sizes, p-values)
+   - Convergence score based on replication
+
+3. Generate convergence report:
+   - Findings ranked by replication consistency
+   - Highlight findings that appear in all runs vs. some
+   - Flag unstable findings (high variance across runs)

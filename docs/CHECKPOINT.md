@@ -1,59 +1,50 @@
 # Kosmos Implementation Checkpoint
 
-**Date**: 2025-12-08
-**Session**: Production Readiness - Phase 4 (Traceability)
+**Date**: 2025-12-09
+**Session**: Test Suite Maintenance & Real Data Validation
 **Branch**: master
 
 ---
 
 ## Session Summary
 
-This session implemented 1 Medium priority paper implementation gap as part of the production readiness roadmap:
-1. **#62 - Code Line Provenance**: Hyperlinks from findings to exact Jupyter notebook cells and line numbers
+This session fixed test suite issues and added real data validation tests to complement mock-based tests:
 
-Previously completed (this release cycle):
-- **#63 - Failure Mode Detection**: Detection for over-interpretation, invented metrics, and rabbit holes
-- **#70 - Null Model Statistical Validation**: Permutation testing to validate findings against null models
-- **#59 - h5ad/Parquet Data Format Support**: Scientific data formats for single-cell RNA-seq and columnar analytics
-- **#69 - R Language Execution Support**: R code execution enabling Mendelian Randomization analyses
-- **#60 - Figure Generation**: Publication-quality figure generation using PublicationVisualizer
-- **#61 - Jupyter Notebook Generation**: Jupyter notebook creation with embedded outputs
+1. **Test Suite Fixes**: Fixed 5 failing test files with proper assertions, exception handling, and Pydantic V2 compatibility
+2. **Real Data Tests**: Added 15 tests validating statistical methods with actual numerical data (no mocks)
+3. **Streaming Issue**: Created GitHub issue #72 for API response streaming to improve visibility during long operations
 
 ---
 
 ## Work Completed This Session
 
-### Issue #62 - Code Line Provenance ✅
-
-**Files Created**:
-- `kosmos/execution/provenance.py` - **NEW** CodeProvenance, CellLineMapping dataclasses (~280 lines)
-- `tests/unit/execution/test_provenance.py` - **NEW** 47 unit tests
-- `tests/integration/execution/test_code_provenance_pipeline.py` - **NEW** 24 integration tests
+### Test Suite Fixes
 
 **Files Modified**:
-- `kosmos/execution/__init__.py` - Exported CodeProvenance, CellLineMapping, helper functions
-- `kosmos/world_model/artifacts.py` - Added `code_provenance` field to Finding
-- `kosmos/execution/notebook_generator.py` - Added `cell_line_mappings` to NotebookMetadata
-- `kosmos/workflow/research_loop.py` - Updated `generate_report()` with hyperlinks
-- `kosmos/world_model/artifacts.py` - Updated `generate_cycle_summary()` with hyperlinks
+- `kosmos/execution/statistics.py` - Fixed numpy.bool_ identity comparison by converting to Python bool
+- `tests/unit/execution/test_statistics.py` - Fixed Cohen's d boundary, Bonferroni expected values, normality checks
+- `tests/unit/execution/test_sandbox.py` - Fixed Docker exception type mocking (DockerException, APIError)
+- `tests/unit/execution/test_result_collector.py` - Fixed Pydantic V2 fixtures with proper model types and db mocking
 
-**Features**:
-- `CodeProvenance` dataclass for linking findings to source code:
-  - `notebook_path`: Path to Jupyter notebook
-  - `cell_index`: 0-based cell index in notebook
-  - `start_line`/`end_line`: Line range within cell
-  - `code_snippet`: Relevant code (max 500 chars, auto-truncated)
-  - `hypothesis_id`: Link to hypothesis being tested
-  - `to_hyperlink()`: Generates `notebook.ipynb#cell=N&line=M` format
-  - `to_markdown_link()`: Generates `[filename](hyperlink)` format
-  - `get_citation_string()`: Human-readable citation
-- `CellLineMapping` dataclass for tracking cell-to-line mappings
-- `NotebookMetadata` enhanced with `cell_line_mappings` field
-- `NotebookGenerator.create_notebook()` now tracks line numbers per cell
-- Report generation includes clickable hyperlinks to code
-- Helper functions: `create_provenance_from_notebook()`, `build_cell_line_mappings()`, `get_cell_for_line()`
+**Files Created**:
+- `tests/integration/execution/test_statistics_real_data.py` - **NEW** 15 real data tests
 
-**Tests**: 71 tests (47 unit + 24 integration) - All passing
+### Real Data Statistical Tests
+
+The new `test_statistics_real_data.py` validates statistical methods with actual numerical data:
+
+| Test Class | Tests | Description |
+|------------|-------|-------------|
+| `TestRealDataEffectSizes` | 4 | Cohen's d, eta-squared, Cramér's V with known effects |
+| `TestRealDataHypothesisTesting` | 4 | T-test, Mann-Whitney, chi-square with real distributions |
+| `TestRealDataConfidenceIntervals` | 2 | CI coverage validation (~95% should cover true mean) |
+| `TestRealDataMultipleComparisons` | 2 | Bonferroni FWER control, BH-FDR power comparison |
+| `TestRealDataAssumptions` | 2 | Normality detection accuracy across distributions |
+| `TestStatisticalReportGeneration` | 1 | Complete analysis report from real data |
+
+### GitHub Issue Created
+
+- **#72 - Stream API Responses**: Feature request for streaming API responses to improve visibility during long-running operations
 
 ---
 
@@ -116,43 +107,71 @@ Previously completed (this release cycle):
 
 ---
 
+## Test Summary
+
+**Total Tests: 3451**
+
+| Category | Count |
+|----------|-------|
+| Unit tests | ~2500 |
+| Integration tests | ~600 |
+| E2E tests | ~350 |
+
+All execution unit tests (434) and real data tests (15) pass.
+
+---
+
+## Key Fixes Details
+
+### 1. numpy.bool_ Identity Comparison (`statistics.py:606-610`)
+```python
+# Before: shapiro_p > 0.05 returns numpy.bool_
+# After: Convert to Python bool for 'is True' comparisons
+normality_met = bool(shapiro_p > 0.05)
+```
+
+### 2. Bonferroni Expected Values (`test_statistics.py`)
+```python
+# Before: Expected [True, True, False, False, False] - WRONG
+# After: p=0.01 is NOT < 0.01, so only first is significant
+assert result['significant'] == [True, False, False, False, False]
+```
+
+### 3. Docker Exception Mocking (`test_sandbox.py`)
+```python
+# Before: Using generic Exception
+# After: Use proper docker.errors types
+mock_docker.errors.DockerException = docker.errors.DockerException
+mock_docker.from_env.side_effect = docker.errors.DockerException("Docker not running")
+```
+
+### 4. Pydantic V2 Fixtures (`test_result_collector.py`)
+```python
+# Before: String-based test specs, missing fields
+# After: Proper model instances with all required fields
+statistical_tests=[StatisticalTestSpec(
+    test_type=StatisticalTest.T_TEST,
+    description="...",
+    null_hypothesis="...",
+    variables=["treatment", "control"]
+)]
+```
+
+---
+
 ## Quick Verification Commands
 
 ```bash
-# Verify code provenance
-python -c "
-from kosmos.execution import CodeProvenance, CellLineMapping, create_provenance_from_notebook
-from kosmos.world_model.artifacts import Finding
+# Run execution unit tests
+python -m pytest tests/unit/execution/ -v --tb=short
 
-# Test CodeProvenance
-provenance = CodeProvenance(
-    notebook_path='artifacts/cycle_1/notebooks/task_5_correlation.ipynb',
-    cell_index=3,
-    start_line=1,
-    end_line=15,
-    code_snippet='import pandas as pd\ndf = pd.read_csv(\"data.csv\")',
-    hypothesis_id='hyp_001',
-)
-print(f'Hyperlink: {provenance.to_hyperlink()}')
-print(f'Citation: {provenance.get_citation_string()}')
-print(f'Markdown: {provenance.to_markdown_link()}')
+# Run real data statistical tests
+python -m pytest tests/integration/execution/test_statistics_real_data.py -v
 
-# Test Finding with provenance
-finding = Finding(
-    finding_id='f001',
-    cycle=1,
-    task_id=5,
-    summary='Test finding',
-    statistics={'p_value': 0.01},
-    code_provenance=provenance.to_dict(),
-)
-print(f'Finding has provenance: {finding.code_provenance is not None}')
-print('All imports successful')
-"
-
-# Run tests
-python -m pytest tests/unit/execution/test_provenance.py -v --tb=short
-python -m pytest tests/integration/execution/test_code_provenance_pipeline.py -v --tb=short
+# Verify specific fixes
+python -m pytest tests/unit/execution/test_statistics.py -v
+python -m pytest tests/unit/execution/test_sandbox.py -v
+python -m pytest tests/unit/execution/test_result_collector.py -v
 ```
 
 ---
@@ -161,8 +180,7 @@ python -m pytest tests/integration/execution/test_code_provenance_pipeline.py -v
 
 - `docs/PAPER_IMPLEMENTATION_GAPS.md` - 17 tracked gaps (15 complete)
 - `docs/resume_prompt.md` - Post-compaction resume instructions
-- `/home/jim/.claude/plans/groovy-questing-allen.md` - Code line provenance plan
-- GitHub Issues #54-#70 - Detailed tracking
+- GitHub Issues #54-#72 - Detailed tracking
 
 ---
 
