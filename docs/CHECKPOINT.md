@@ -8,8 +8,9 @@
 
 ## Session Summary
 
-This session implemented 1 High priority paper implementation gap as part of the production readiness roadmap:
+This session implemented 2 High priority paper implementation gaps as part of the production readiness roadmap:
 1. **#60 - Figure Generation**: Publication-quality figure generation using PublicationVisualizer
+2. **#61 - Jupyter Notebook Generation**: Jupyter notebook creation with embedded outputs
 
 Previously completed (this release cycle):
 - **#59 - h5ad/Parquet Data Format Support**: Scientific data formats for single-cell RNA-seq and columnar analytics
@@ -18,6 +19,32 @@ Previously completed (this release cycle):
 ---
 
 ## Work Completed This Session
+
+### Issue #61 - Jupyter Notebook Generation ✅
+
+**Files Created/Modified**:
+- `kosmos/execution/notebook_generator.py` - **NEW** NotebookGenerator class (530+ lines)
+- `kosmos/world_model/artifacts.py` - Added `notebook_metadata` field to Finding
+- `tests/unit/execution/test_notebook_generator.py` - **NEW** 44 unit tests
+- `tests/integration/test_notebook_generation.py` - **NEW** 21 integration tests
+
+**Features**:
+- `NotebookGenerator` class:
+  - Creates .ipynb files from executed code using nbformat library
+  - Supports Python and R kernels
+  - Embeds execution outputs (stdout, stderr, return_value, errors) via `nbformat.v4.new_output()`
+  - References generated figures in markdown cells
+  - Tracks total line count across all notebooks (paper claims ~42,000)
+  - Directory structure: `artifacts/cycle_N/notebooks/task_M_type.ipynb`
+- `NotebookMetadata` dataclass for tracking notebook information
+- Code cell splitting on `# %%` markers or logical sections (imports vs main code)
+- Finding dataclass extended:
+  - `notebook_metadata: Optional[Dict]` - Notebook metadata (kernel, line_count, cell_count)
+- Convenience function `create_notebook_from_code()` for standalone use
+
+**Tests**: 65 tests (44 unit + 21 integration) - All passing
+
+---
 
 ### Issue #60 - Figure Generation ✅
 
@@ -39,65 +66,12 @@ Previously completed (this release cycle):
   - CorrelationAnalysisCodeTemplate → `scatter_with_regression()`
   - LogLogScalingCodeTemplate → `log_log_plot()` (600 DPI)
   - MLExperimentCodeTemplate → `scatter_with_regression()`
-- Finding dataclass extended:
-  - `figure_paths: Optional[List[str]]` - List of generated figure paths
-  - `figure_metadata: Optional[Dict]` - Figure metadata (type, caption, DPI)
 - Publication-quality output:
   - DPI: 300 (standard), 600 (panels/log-log)
   - Arial TrueType fonts
   - kosmos-figures color scheme (#d7191c, #0072B2, #abd9e9)
 
 **Tests**: 54 tests (35 unit + 19 integration) - All passing
-
----
-
-### Issue #59 - h5ad/Parquet Data Format Support ✅
-
-**Files Created/Modified**:
-- `kosmos/execution/data_analysis.py` - Added `load_h5ad()` and `load_parquet()` methods
-- `pyproject.toml` - Added pyarrow>=14.0.0 to science dependencies
-- `tests/unit/execution/test_data_analysis.py` - Added 11 unit tests
-- `tests/integration/test_data_formats.py` - **NEW** 14 integration tests
-
-**Features**:
-- `DataLoader.load_h5ad()`: Single-cell RNA-seq data loading via anndata
-  - Supports DataFrame conversion or raw AnnData return
-  - Handles sparse matrices, cell metadata
-- `DataLoader.load_parquet()`: Columnar data loading via pyarrow
-  - Supports column selection for efficient partial loading
-  - Works with various compression codecs
-- Auto-detection by file extension in `load_data()` dispatcher
-
-**Tests**: 25 tests (11 unit + 14 integration) - All passing
-
----
-
-### Issue #69 - R Language Execution Support ✅
-
-**Files Created/Modified**:
-- `kosmos/execution/r_executor.py` - **NEW** R execution engine (450+ lines)
-- `kosmos/execution/executor.py` - Added R integration to CodeExecutor
-- `docker/sandbox/Dockerfile.r` - **NEW** R-enabled Docker image
-- `tests/unit/execution/test_r_executor.py` - **NEW** 36 unit tests
-- `tests/integration/test_r_execution.py` - **NEW** 22 integration tests
-
-**Features**:
-- `RExecutor` class:
-  - Auto-detects R vs Python code
-  - Executes R scripts via Rscript command
-  - Captures stdout/stderr and parses structured JSON results
-  - `kosmos_capture()` function for result extraction
-  - `execute_mendelian_randomization()` convenience method
-- R-enabled Docker image:
-  - R base with TwoSampleMR, susieR, MendelianRandomization packages
-- CodeExecutor integration:
-  - Auto-routes R code to R executor
-  - New `execute_r()` method for explicit R execution
-  - `is_r_available()` and `get_r_version()` methods
-
-**Tests**: 58 tests (36 unit + 22 integration)
-- Unit tests: All passing
-- Integration tests: Skip if R not installed (environment-dependent)
 
 ---
 
@@ -119,24 +93,25 @@ Previously completed (this release cycle):
 | #57 | Parallel Task Execution (10) | ✅ FIXED |
 | #58 | Agent Rollout Tracking | ✅ FIXED |
 
-### High Priority Issues (3/5 Complete)
+### High Priority Issues (4/5 Complete)
 | Issue | Description | Status |
 |-------|-------------|--------|
 | #59 | h5ad/Parquet Data Format Support | ✅ FIXED |
 | #69 | R Language Execution Support | ✅ FIXED |
 | #60 | Figure Generation | ✅ FIXED |
+| #61 | Jupyter Notebook Generation | ✅ FIXED |
 
 ---
 
 ## Progress Summary
 
-**11/17 gaps fixed (65%)**
+**12/17 gaps fixed (71%)**
 
 | Priority | Status |
 |----------|--------|
 | BLOCKER | 3/3 Complete ✅ |
 | Critical | 5/5 Complete ✅ |
-| High | 3/5 Complete |
+| High | 4/5 Complete |
 | Medium | 0/2 Remaining |
 | Low | 0/2 Remaining |
 
@@ -144,16 +119,10 @@ Previously completed (this release cycle):
 
 ## Remaining Work (Prioritized Order)
 
-### Phase 2: Output Artifacts
-| Order | Issue | Description |
-|-------|-------|-------------|
-| 3 | #60 | Figure Generation (matplotlib) | ✅ Complete |
-| 4 | #61 | Jupyter Notebook Generation | **NEXT** |
-
 ### Phase 3: Validation Quality
 | Order | Issue | Description |
 |-------|-------|-------------|
-| 5 | #70 | Null Model Statistical Validation |
+| 5 | #70 | Null Model Statistical Validation | **NEXT** |
 | 6 | #63 | Failure Mode Detection |
 
 ### Phase 4: Traceability
@@ -172,46 +141,51 @@ Previously completed (this release cycle):
 ## Quick Verification Commands
 
 ```bash
-# Verify new implementations
+# Verify notebook generation
 python -c "
-from kosmos.execution.data_analysis import DataLoader
-from kosmos.execution.r_executor import RExecutor, is_r_code
-from kosmos.execution.executor import CodeExecutor
+from kosmos.execution.notebook_generator import NotebookGenerator, NotebookMetadata
+from kosmos.world_model.artifacts import Finding
 
-# Test h5ad/parquet support
-print('DataLoader methods:', [m for m in dir(DataLoader) if m.startswith('load_')])
+# Test NotebookGenerator
+gen = NotebookGenerator(artifacts_dir='/tmp/test')
+print('NotebookGenerator initialized')
 
-# Test R executor
-executor = RExecutor()
-print(f'R available: {executor.is_r_available()}')
-print(f'Language detection test: {executor.detect_language(\"library(dplyr)\")}')
+# Test NotebookMetadata
+meta = NotebookMetadata(
+    path='/tmp/test.ipynb',
+    title='Test',
+    cycle=1, task_id=1,
+    analysis_type='test',
+    kernel='python3',
+    code_cell_count=3, markdown_cell_count=1,
+    total_line_count=50
+)
+print(f'NotebookMetadata: {meta.to_dict()}')
 
-# Test CodeExecutor R integration
-ce = CodeExecutor()
-print(f'CodeExecutor R available: {ce.is_r_available()}')
+# Test Finding with notebook_metadata
+finding = Finding(
+    finding_id='f1', cycle=1, task_id=1,
+    summary='test', statistics={},
+    notebook_path='path/nb.ipynb',
+    notebook_metadata={'kernel': 'python3', 'line_count': 50}
+)
+print(f'Finding.notebook_metadata: {finding.notebook_metadata}')
 print('All imports successful')
 "
 
-# Run new tests
-python -m pytest tests/unit/execution/test_data_analysis.py::TestDataLoaderH5ad tests/unit/execution/test_data_analysis.py::TestDataLoaderParquet -v --tb=short
-python -m pytest tests/unit/execution/test_r_executor.py -v --tb=short
+# Run tests
+python -m pytest tests/unit/execution/test_notebook_generator.py -v --tb=short
+python -m pytest tests/integration/test_notebook_generation.py -v --tb=short
 ```
 
 ---
 
 ## Key Documentation
 
-- `docs/PAPER_IMPLEMENTATION_GAPS.md` - 17 tracked gaps (10 complete)
+- `docs/PAPER_IMPLEMENTATION_GAPS.md` - 17 tracked gaps (12 complete)
 - `docs/resume_prompt.md` - Post-compaction resume instructions
 - `/home/jim/.claude/plans/peppy-floating-feather.md` - Full implementation plan
 - GitHub Issues #54-#70 - Detailed tracking
-
----
-
-## Commits This Session
-
-1. `d46a178` - Implement #59: h5ad/Parquet data format support
-2. `7cece02` - Implement #69: R language execution support
 
 ---
 
@@ -224,11 +198,11 @@ The approved implementation order (from plan file):
 | 1 | 1 | #59 | h5ad/Parquet Data Formats | ✅ Complete |
 | 1 | 2 | #69 | R Language Support | ✅ Complete |
 | 2 | 3 | #60 | Figure Generation | ✅ Complete |
-| 2 | 4 | #61 | Jupyter Notebook Generation | Pending |
-| 3 | 5 | #70 | Null Model Statistical Validation | Pending |
+| 2 | 4 | #61 | Jupyter Notebook Generation | ✅ Complete |
+| 3 | 5 | #70 | Null Model Statistical Validation | **NEXT** |
 | 3 | 6 | #63 | Failure Mode Detection | Pending |
 | 4 | 7 | #62 | Code Line Provenance | Pending |
 | 5 | 8 | #64 | Multi-Run Convergence | Pending |
 | 5 | 9 | #65 | Paper Accuracy Validation | Pending |
 
-**Next step**: #61 - Jupyter Notebook Generation
+**Next step**: #70 - Null Model Statistical Validation

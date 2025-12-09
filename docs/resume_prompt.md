@@ -2,7 +2,7 @@
 
 ## Context
 
-You are resuming work on the Kosmos project after a context compaction. The previous sessions implemented **11 paper implementation gaps** (3 BLOCKER + 5 Critical + 3 High).
+You are resuming work on the Kosmos project after a context compaction. The previous sessions implemented **12 paper implementation gaps** (3 BLOCKER + 5 Critical + 4 High).
 
 ## What Was Done
 
@@ -21,28 +21,26 @@ You are resuming work on the Kosmos project after a context compaction. The prev
 | #59 | h5ad/Parquet Data Formats | `DataLoader.load_h5ad()` and `load_parquet()` methods |
 | #69 | R Language Execution | `RExecutor` class + Docker image with TwoSampleMR |
 | #60 | Figure Generation | `FigureManager` class + code template integration |
+| #61 | Jupyter Notebook Generation | `NotebookGenerator` class + nbformat integration |
 
 ### Key Files Created/Modified (Recent)
 
 | File | Changes |
 |------|---------|
-| `kosmos/execution/figure_manager.py` | **NEW** - FigureManager class |
-| `kosmos/execution/code_generator.py` | Added figure generation to 4 templates |
-| `kosmos/world_model/artifacts.py` | Added figure_paths, figure_metadata to Finding |
-| `tests/unit/execution/test_figure_manager.py` | **NEW** - 35 unit tests |
-| `tests/integration/test_figure_generation.py` | **NEW** - 19 integration tests |
+| `kosmos/execution/notebook_generator.py` | **NEW** - NotebookGenerator class (530+ lines) |
+| `kosmos/world_model/artifacts.py` | Added notebook_metadata field to Finding |
+| `tests/unit/execution/test_notebook_generator.py` | **NEW** - 44 unit tests |
+| `tests/integration/test_notebook_generation.py` | **NEW** - 21 integration tests |
 
-## Remaining Work (6 gaps)
+## Remaining Work (5 gaps)
 
 ### Implementation Order
 
 | Phase | Order | Issue | Description | Status |
 |-------|-------|-------|-------------|--------|
-| 1 | 1 | #59 | h5ad/Parquet Data Formats | ✅ Complete |
-| 1 | 2 | #69 | R Language Support | ✅ Complete |
 | 2 | 3 | #60 | Figure Generation | ✅ Complete |
-| 2 | 4 | #61 | Jupyter Notebook Generation | **Next** |
-| 3 | 5 | #70 | Null Model Statistical Validation | Pending |
+| 2 | 4 | #61 | Jupyter Notebook Generation | ✅ Complete |
+| 3 | 5 | #70 | Null Model Statistical Validation | **Next** |
 | 3 | 6 | #63 | Failure Mode Detection | Pending |
 | 4 | 7 | #62 | Code Line Provenance | Pending |
 | 5 | 8 | #64 | Multi-Run Convergence | Pending |
@@ -57,58 +55,58 @@ You are resuming work on the Kosmos project after a context compaction. The prev
 ## Key Documentation
 
 - `docs/CHECKPOINT.md` - Full session summary
-- `docs/PAPER_IMPLEMENTATION_GAPS.md` - 17 tracked gaps (11 complete)
+- `docs/PAPER_IMPLEMENTATION_GAPS.md` - 17 tracked gaps (12 complete)
 - `/home/jim/.claude/plans/peppy-floating-feather.md` - Full implementation plan
 - GitHub Issues #54-#70 - Detailed tracking
 
 ## Quick Verification Commands
 
 ```bash
-# Verify figure generation
+# Verify notebook generation
 python -c "
-from kosmos.execution.figure_manager import FigureManager, FigureMetadata
+from kosmos.execution.notebook_generator import NotebookGenerator, NotebookMetadata
 from kosmos.world_model.artifacts import Finding
 
-# Test FigureManager
-fm = FigureManager(artifacts_dir='/tmp/test', use_visualizer=False)
-print('Plot type for t_test:', fm.select_plot_type('t_test'))
-print('Plot type for correlation:', fm.select_plot_type('correlation'))
+# Test NotebookGenerator
+gen = NotebookGenerator(artifacts_dir='/tmp/test')
+print('Plot type for t_test:', gen.get_notebook_path(1, 1, 't_test'))
 
-# Test Finding with figure_paths
-f = Finding(finding_id='f1', cycle=1, task_id=1, summary='test', statistics={}, figure_paths=['path/fig.png'])
-print('Finding figure_paths:', f.figure_paths)
+# Test Finding with notebook_metadata
+f = Finding(finding_id='f1', cycle=1, task_id=1, summary='test', statistics={},
+            notebook_path='path/nb.ipynb', notebook_metadata={'kernel': 'python3'})
+print('Finding notebook_metadata:', f.notebook_metadata)
 print('All imports successful')
 "
 
 # Run tests
-python -m pytest tests/unit/execution/test_figure_manager.py -v --tb=short
-python -m pytest tests/integration/test_figure_generation.py -v --tb=short
+python -m pytest tests/unit/execution/test_notebook_generator.py -v --tb=short
+python -m pytest tests/integration/test_notebook_generation.py -v --tb=short
 ```
 
 ## Resume Command
 
 Start by reading the checkpoint:
 ```
-Read docs/CHECKPOINT.md and docs/PAPER_IMPLEMENTATION_GAPS.md, then continue with the next item: #61 - Jupyter Notebook Generation
+Read docs/CHECKPOINT.md and docs/PAPER_IMPLEMENTATION_GAPS.md, then continue with the next item: #70 - Null Model Statistical Validation
 ```
 
 ## Progress Summary
 
-**11/17 gaps fixed (65% complete)**
+**12/17 gaps fixed (71% complete)**
 
 | Priority | Status |
 |----------|--------|
 | BLOCKER | 3/3 complete ✅ |
 | Critical | 5/5 complete ✅ |
-| High | 3/5 complete |
+| High | 4/5 complete |
 | Medium | 0/2 remaining |
 | Low | 0/2 remaining |
 
 ## Next Step
 
-Continue with **#61 - Jupyter Notebook Generation**:
-- Create `NotebookGenerator` class using nbformat
-- Support Python and R kernels
-- Embed code cells with outputs and figures
-- Save to `artifacts/cycle_N/notebooks/`
-- Track total line count
+Continue with **#70 - Null Model Statistical Validation**:
+- Create `NullModelValidator` class for permutation testing
+- Implement shuffle strategies (column, row, label)
+- Calculate p-values from permutation distribution
+- Integrate with ScholarEval validation framework
+- Flag findings that persist in noise (false positives)

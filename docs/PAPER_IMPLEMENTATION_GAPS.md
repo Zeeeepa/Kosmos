@@ -12,10 +12,10 @@
 |----------|-------|--------|
 | **BLOCKER** | 3 | **3/3 Complete** ✅ |
 | **Critical** | 5 | **5/5 Complete** ✅ |
-| High | 5 | 3/5 Complete |
+| High | 5 | **4/5 Complete** |
 | Medium | 2 | 0/2 Complete |
 | Low | 2 | 0/2 Complete |
-| **Total** | **17** | **11/17 Complete** |
+| **Total** | **17** | **12/17 Complete** |
 
 > **Note**: BLOCKER priority means the system cannot run at all until fixed. These must be addressed before any other gaps.
 
@@ -371,36 +371,45 @@ Skill not found: matplotlib
 
 ---
 
-### GAP-008: Jupyter Notebook Generation
+### GAP-008: Jupyter Notebook Generation ✅ COMPLETE
 
 | Field | Value |
 |-------|-------|
 | **GitHub Issue** | [#61](https://github.com/jimmc414/Kosmos/issues/61) |
-| **Status** | Not Started |
+| **Status** | **Complete** (2025-12-08) |
 | **Priority** | High |
 | **Area** | Execution |
 
 **Paper Claim** (Section 5):
 > "Code Repository: All ~42,000 lines of executable Python code generated during the run (Jupyter notebooks)"
 
-**Current Implementation**:
-- `JupyterClient` can EXECUTE notebooks at `jupyter_client.py:326`
-- Cannot CREATE notebooks from code
-- Compression processes existing notebooks but doesn't generate them
+**Solution Implemented**:
+- New `NotebookGenerator` class (`kosmos/execution/notebook_generator.py`):
+  - Creates .ipynb files from executed code using nbformat library
+  - Supports Python and R kernels
+  - Embeds execution outputs (stdout, stderr, return_value, errors)
+  - References generated figures in markdown cells
+  - Tracks total line count across all notebooks (paper claims ~42,000)
+  - Directory structure: `artifacts/cycle_N/notebooks/task_M_type.ipynb`
+- `NotebookMetadata` dataclass for tracking notebook information
+- Code cell splitting on `# %%` markers or logical sections
+- Added `notebook_metadata` field to Finding dataclass for full provenance
+- Convenience function `create_notebook_from_code()` for standalone use
 
-**Gap**:
-- System doesn't produce notebook artifacts as claimed
-- Code not preserved in reproducible format
+**Files Created/Modified**:
+- `kosmos/execution/notebook_generator.py` - **NEW** NotebookGenerator class
+- `kosmos/world_model/artifacts.py` - Added notebook_metadata field to Finding
 
-**Files to Modify**:
-- `kosmos/execution/jupyter_client.py`
-- New: `kosmos/execution/notebook_generator.py`
+**Tests**:
+- 44 unit tests (metadata, paths, cell splitting, output conversion, creation)
+- 21 integration tests (real notebook generation, validation, kernels)
+- All tests passing
 
 **Acceptance Criteria**:
-- [ ] `NotebookGenerator.create_notebook(code, outputs)` function
-- [ ] Notebooks saved to `artifacts/cycle_N/notebooks/`
-- [ ] Outputs embedded in notebook cells
-- [ ] Total line count tracked
+- [x] `NotebookGenerator.create_notebook(code, outputs)` function
+- [x] Notebooks saved to `artifacts/cycle_N/notebooks/`
+- [x] Outputs embedded in notebook cells (via nbformat.v4.new_output)
+- [x] Total line count tracked (get_total_line_count())
 
 ---
 
@@ -662,6 +671,7 @@ Two external critiques (grading C-/C+) made claims that investigation proved **i
 
 | Date | Change |
 |------|--------|
+| 2025-12-08 | Implemented GAP-008 (#61) Jupyter notebook generation - 12/17 gaps now done |
 | 2025-12-08 | Implemented GAP-007 (#60) Figure generation support - 11/17 gaps now done |
 | 2025-12-08 | Implemented GAP-016 (#69) R language execution support - 10/17 gaps now done |
 | 2025-12-08 | Implemented GAP-006 (#59) h5ad/Parquet data format support - 9/17 gaps now done |

@@ -69,6 +69,8 @@ class Finding:
     # Issue #60: Figure tracking for research artifacts
     figure_paths: Optional[List[str]] = None  # List of generated figure file paths
     figure_metadata: Optional[Dict] = None  # Figure metadata: {type, caption, dpi, etc.}
+    # Issue #61: Notebook tracking for research artifacts
+    notebook_metadata: Optional[Dict] = None  # Notebook metadata: {kernel, line_count, cell_count, etc.}
 
     def to_dict(self) -> Dict:
         """Convert to dictionary for JSON serialization."""
