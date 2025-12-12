@@ -1,0 +1,67 @@
+{
+  "priority_patterns": {
+    "critical": {
+      "description": "Core orchestration and coordination - understand these first",
+      "patterns": [
+        "**/workflow/**/*.py",
+        "**/orchestration/**/*.py",
+        "**/agents/base*.py",
+        "**/agents/registry*.py"
+      ]
+    },
+    "high": {
+      "description": "Domain logic and data models",
+      "patterns": [
+        "**/world_model/**/*.py",
+        "**/execution/**/*.py",
+        "**/core/**/*.py"
+      ]
+    },
+    "medium": {
+      "description": "Supporting infrastructure",
+      "patterns": [
+        "**/validation/**/*.py",
+        "**/sandbox/**/*.py",
+        "**/streaming/**/*.py"
+      ]
+    },
+    "low": {
+      "description": "Utilities and tests - explore only if needed",
+      "patterns": [
+        "**/utils/**/*.py",
+        "**/tests/**/*.py",
+        "**/cli/**/*.py"
+      ]
+    }
+  },
+  "entry_points": {
+    "description": "Key entry points for understanding system flow",
+    "hints": [
+      "Look for classes with 'Workflow' or 'Orchestrator' in name",
+      "Look for 'main' functions or '__main__' blocks",
+      "Look for CLI command definitions",
+      "Look for classes inheriting from BaseAgent"
+    ]
+  },
+  "architecture_keywords": {
+    "description": "Keywords that indicate architectural importance",
+    "class_patterns": [
+      "Workflow",
+      "Orchestrator",
+      "Manager",
+      "Registry",
+      "BaseAgent",
+      "Executor",
+      "Storage",
+      "Model"
+    ],
+    "method_patterns": [
+      "run",
+      "execute",
+      "process",
+      "handle",
+      "dispatch"
+    ]
+  },
+  "_comment": "Pattern-based priority system - adapts as codebase evolves"
+}

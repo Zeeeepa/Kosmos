@@ -1,0 +1,53 @@
+{
+  "directories": [
+    "artifacts",
+    "data",
+    ".literature_cache",
+    "kosmos-reference",
+    "logs",
+    "__pycache__",
+    ".git",
+    "node_modules",
+    "site-packages",
+    ".venv",
+    "venv",
+    "env",
+    ".pytest_cache",
+    ".mypy_cache",
+    "htmlcov",
+    "dist",
+    "build",
+    "*.egg-info",
+    "archive"
+  ],
+  "extensions": [
+    ".jsonl",
+    ".log",
+    ".txt",
+    ".lock",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".pdf",
+    ".pkl",
+    ".pickle",
+    ".pyc",
+    ".pyo",
+    ".so",
+    ".dylib",
+    ".db",
+    ".sqlite",
+    ".sqlite3",
+    ".coverage"
+  ],
+  "files": [
+    "*.log",
+    "*.jsonl",
+    ".DS_Store",
+    "Thumbs.db",
+    "*.min.js",
+    "*.min.css"
+  ],
+  "_comment": "Patterns for directories/files that consume context without providing architectural insight"
+}
